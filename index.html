@@ -2,194 +2,746 @@
 <html lang="zh-CN" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>全域情报与量化决策看板 · 511</title>
+  <title>Command Center · 511</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+          },
+          colors: {
+            border: "hsl(var(--border))",
+            input: "hsl(var(--input))",
+            ring: "hsl(var(--ring))",
+            background: "hsl(var(--background))",
+            foreground: "hsl(var(--foreground))",
+            primary: {
+              DEFAULT: "hsl(var(--primary))",
+              foreground: "hsl(var(--primary-foreground))",
+            },
+            secondary: {
+              DEFAULT: "hsl(var(--secondary))",
+              foreground: "hsl(var(--secondary-foreground))",
+            },
+            muted: {
+              DEFAULT: "hsl(var(--muted))",
+              foreground: "hsl(var(--muted-foreground))",
+            },
+            accent: {
+              DEFAULT: "hsl(var(--accent))",
+              foreground: "hsl(var(--accent-foreground))",
+            },
+            card: {
+              DEFAULT: "hsl(var(--card))",
+              foreground: "hsl(var(--card-foreground))",
+            },
+          },
+          borderRadius: {
+            lg: "0.625rem",
+            md: "0.5rem",
+            sm: "0.375rem",
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    body { background: #0b0f17; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-    .glass { background: rgba(17, 24, 39, 0.86); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
-    .md-body h1, .md-body h2 { font-size: 1.05rem; font-weight: 700; color: #f8fafc; margin-top: 0.75rem; margin-bottom: 0.4rem; }
-    .md-body h3, .md-body h4 { font-size: 0.92rem; font-weight: 600; color: #93c5fd; margin-top: 0.65rem; margin-bottom: 0.3rem; }
-    .md-body p, .md-body li { font-size: 0.85rem; line-height: 1.55; color: #cbd5e1; }
-    .md-body ul { list-style: disc; padding-left: 1.2rem; margin: 0.35rem 0; }
-    .md-body blockquote { border-left: 3px solid #3b82f6; padding: 0.4rem 0.7rem; background: rgba(59,130,246,0.1); border-radius: 0.375rem; margin: 0.5rem 0; }
-    .md-body table { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin: 0.5rem 0; display: block; overflow-x: auto; }
-    .md-body th, .md-body td { border: 1px solid rgba(255,255,255,0.1); padding: 0.35rem 0.5rem; text-align: left; white-space: nowrap; }
-    .md-body th { background: rgba(255,255,255,0.05); color: #94a3b8; }
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 240 10% 3.9%;
+      --card: 0 0% 100%;
+      --card-foreground: 240 10% 3.9%;
+      --primary: 240 5.9% 10%;
+      --primary-foreground: 0 0% 98%;
+      --secondary: 240 4.8% 95.9%;
+      --secondary-foreground: 240 5.9% 10%;
+      --muted: 240 4.8% 95.9%;
+      --muted-foreground: 240 3.8% 45%;
+      --accent: 240 4.8% 95.9%;
+      --accent-foreground: 240 5.9% 10%;
+      --border: 240 5.9% 90%;
+      --input: 240 5.9% 90%;
+      --ring: 240 5.9% 10%;
+    }
+    .dark {
+      --background: 240 10% 3.9%;
+      --foreground: 0 0% 98%;
+      --card: 240 10% 5.5%;
+      --card-foreground: 0 0% 98%;
+      --primary: 0 0% 98%;
+      --primary-foreground: 240 5.9% 10%;
+      --secondary: 240 3.7% 13.5%;
+      --secondary-foreground: 0 0% 98%;
+      --muted: 240 3.7% 13.5%;
+      --muted-foreground: 240 5% 64.9%;
+      --accent: 240 3.7% 15.9%;
+      --accent-foreground: 0 0% 98%;
+      --border: 240 3.7% 15.9%;
+      --input: 240 3.7% 15.9%;
+      --ring: 240 4.9% 83.9%;
+    }
+    body {
+      background-color: hsl(var(--background));
+      color: hsl(var(--foreground));
+      -webkit-tap-highlight-color: transparent;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+    .shadcn-card {
+      background-color: hsl(var(--card));
+      color: hsl(var(--card-foreground));
+      border: 1px solid hsl(var(--border));
+      border-radius: 0.75rem;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
     .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Markdown inside Sheet & Cards */
+    .md-prose h1, .md-prose h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid hsl(var(--border));
+    }
+    .md-prose h3, .md-prose h4 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 0.85rem;
+      margin-bottom: 0.35rem;
+      color: hsl(var(--foreground));
+    }
+    .md-prose p, .md-prose li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      color: hsl(var(--muted-foreground));
+    }
+    .md-prose strong { color: hsl(var(--foreground)); font-weight: 600; }
+    .md-prose ul { list-style: disc; padding-left: 1.15rem; margin: 0.4rem 0; }
+    .md-prose blockquote {
+      border-left: 2px solid hsl(var(--primary));
+      padding: 0.5rem 0.75rem;
+      background-color: hsl(var(--muted) / 0.5);
+      border-radius: 0 0.375rem 0.375rem 0;
+      margin: 0.6rem 0;
+    }
+    .md-prose blockquote p { color: hsl(var(--foreground)); font-weight: 500; }
+    .md-prose table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+      margin: 0.6rem 0;
+      display: block;
+      overflow-x: auto;
+    }
+    .md-prose th, .md-prose td {
+      border: 1px solid hsl(var(--border));
+      padding: 0.4rem 0.6rem;
+      text-align: left;
+      white-space: nowrap;
+    }
+    .md-prose th {
+      background-color: hsl(var(--muted));
+      color: hsl(var(--foreground));
+      font-weight: 600;
+    }
   </style>
 </head>
-<body class="pb-24 min-h-screen">
-  <!-- Sticky Mobile Header -->
-  <header class="sticky top-0 z-30 glass px-4 py-3">
-    <div class="max-w-3xl mx-auto flex items-center justify-between">
-      <div>
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" id="live-dot"></span>
-          <h1 class="text-base font-bold tracking-tight text-white">全域情报与量化决策台</h1>
+<body class="min-h-screen pb-24 selection:bg-zinc-500/20">
+
+  <!-- Top Navbar (shadcn/ui Header pattern) -->
+  <header class="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
+    <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0 font-mono font-bold text-xs">
+          511
         </div>
-        <p class="text-[11px] text-slate-400 mt-0.5" id="status-bar">正在同步 ntfy.sh/trendradar-mac-511 ...</p>
+        <div class="truncate">
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm font-semibold tracking-tight truncate">量化与全域情报台</h1>
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              Live
+            </span>
+          </div>
+          <p class="text-[11px] text-muted-foreground truncate font-mono" id="sync-status">
+            ntfy.sh/trendradar-mac-511 · 同步中...
+          </p>
+        </div>
       </div>
-      <button onclick="loadData()" class="px-3 py-1.5 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs font-medium active:scale-95 transition">
-        刷新数据
-      </button>
+
+      <!-- Desktop Segmented Tabs -->
+      <div class="hidden md:flex items-center bg-muted p-1 rounded-lg border border-border">
+        <button onclick="switchView('stocks')" id="dtab-stocks" class="px-3 py-1 rounded-md text-xs font-medium transition">
+          标的决策 (11)
+        </button>
+        <button onclick="switchView('radar')" id="dtab-radar" class="px-3 py-1 rounded-md text-xs font-medium transition">
+          五大领域情报
+        </button>
+        <button onclick="switchView('market')" id="dtab-market" class="px-3 py-1 rounded-md text-xs font-medium transition">
+          A股大盘复盘
+        </button>
+      </div>
+
+      <!-- Right Actions: Theme toggle + Refresh -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button onclick="toggleTheme()" class="h-8 w-8 rounded-md border border-border bg-card hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground transition" title="切换深浅色主题">
+          <i data-lucide="sun-moon" class="w-4 h-4"></i>
+        </button>
+        <button onclick="loadNtfyData()" id="refresh-btn" class="h-8 px-2.5 rounded-md border border-border bg-primary text-primary-foreground hover:opacity-90 flex items-center gap-1.5 text-xs font-medium transition active:scale-95">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="refresh-icon"></i>
+          <span>刷新</span>
+        </button>
+      </div>
     </div>
   </header>
 
-  <main class="max-w-3xl mx-auto px-3 pt-3 space-y-3">
-    <!-- Quick Summary Strip -->
-    <div id="kpi-strip" class="grid grid-cols-3 gap-2">
-      <div class="glass rounded-xl p-2.5">
-        <div class="text-[11px] text-slate-400">监控标的</div>
-        <div class="text-base font-bold text-white mt-0.5" id="kpi-stocks">--</div>
-      </div>
-      <div class="glass rounded-xl p-2.5">
-        <div class="text-[11px] text-slate-400">大盘信号</div>
-        <div class="text-base font-bold text-amber-400 mt-0.5" id="kpi-market">--</div>
-      </div>
-      <div class="glass rounded-xl p-2.5">
-        <div class="text-[11px] text-slate-400">五大领域情报</div>
-        <div class="text-base font-bold text-emerald-400 mt-0.5" id="kpi-radar">--</div>
-      </div>
-    </div>
+  <!-- Main Workspace -->
+  <main class="max-w-5xl mx-auto px-3.5 sm:px-4 pt-4 space-y-4">
 
-    <!-- Search & Filter -->
-    <div id="stock-filter-bar" class="flex gap-1.5 overflow-x-auto no-scrollbar py-1"></div>
+    <!-- Top Metric Strip (shadcn Metric Cards) -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+      <div class="shadcn-card p-3.5">
+        <div class="flex items-center justify-between text-xs text-muted-foreground">
+          <span class="font-medium">大盘环境信号</span>
+          <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-500"></i>
+        </div>
+        <div class="mt-1.5 flex items-baseline gap-2">
+          <span class="text-xl font-bold font-mono tracking-tight" id="metric-market-score">--</span>
+          <span class="text-[11px] font-medium text-amber-500" id="metric-market-tag">加载中</span>
+        </div>
+        <div class="mt-2 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div id="metric-market-bar" class="h-full bg-amber-500 transition-all duration-500" style="width: 43%"></div>
+        </div>
+      </div>
 
-    <!-- Main Content Container -->
-    <div id="view-stocks" class="space-y-2.5"></div>
-    <div id="view-radar" class="space-y-2.5 hidden"></div>
-    <div id="view-market" class="space-y-2.5 hidden"></div>
+      <div class="shadcn-card p-3.5">
+        <div class="flex items-center justify-between text-xs text-muted-foreground">
+          <span class="font-medium">监控标的分布</span>
+          <i data-lucide="layers" class="w-3.5 h-3.5 text-sky-500"></i>
+        </div>
+        <div class="mt-1.5 flex items-baseline gap-1.5">
+          <span class="text-xl font-bold font-mono tracking-tight" id="metric-stock-count">--</span>
+          <span class="text-[11px] text-muted-foreground" id="metric-stock-split">持有 / 观望</span>
+        </div>
+        <p class="text-[11px] text-muted-foreground mt-1.5 truncate" id="metric-stock-sub">含宽基指数、ETF与龙头股</p>
+      </div>
+
+      <div class="shadcn-card p-3.5">
+        <div class="flex items-center justify-between text-xs text-muted-foreground">
+          <span class="font-medium">最强势 / 最承压</span>
+          <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-500"></i>
+        </div>
+        <div class="mt-1.5 flex items-center justify-between text-xs font-mono">
+          <span class="text-emerald-500 font-semibold truncate" id="metric-top-bull">--</span>
+          <span class="text-muted-foreground">/</span>
+          <span class="text-rose-500 font-semibold truncate" id="metric-top-bear">--</span>
+        </div>
+        <p class="text-[11px] text-muted-foreground mt-1.5 truncate">点击下方卡片查看1周/1月预判</p>
+      </div>
+
+      <div class="shadcn-card p-3.5">
+        <div class="flex items-center justify-between text-xs text-muted-foreground">
+          <span class="font-medium">全域情报雷达</span>
+          <i data-lucide="radar" class="w-3.5 h-3.5 text-indigo-500"></i>
+        </div>
+        <div class="mt-1.5 flex items-baseline gap-2">
+          <span class="text-xl font-bold font-mono tracking-tight" id="metric-radar-state">5 领域</span>
+          <span class="text-[11px] text-emerald-500 font-medium" id="metric-radar-time">AI已提炼</span>
+        </div>
+        <p class="text-[11px] text-muted-foreground mt-1.5 truncate">AI·手游·宏观期货·政局·热点</p>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 1: STOCKS & FORECASTS ==================== -->
+    <section id="view-stocks" class="space-y-3.5">
+      <!-- Search + Category Filter Bar -->
+      <div class="shadcn-card p-2.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+        <div class="flex items-center gap-1 overflow-x-auto no-scrollbar" id="category-tabs">
+          <button onclick="setCategory('ALL')" data-cat="ALL" class="cat-btn px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap bg-primary text-primary-foreground">
+            全部标的
+          </button>
+          <button onclick="setCategory('INDEX')" data-cat="INDEX" class="cat-btn px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap text-muted-foreground hover:text-foreground">
+            宽基指数
+          </button>
+          <button onclick="setCategory('ETF')" data-cat="ETF" class="cat-btn px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap text-muted-foreground hover:text-foreground">
+            跨资产ETF (债/金/股)
+          </button>
+          <button onclick="setCategory('STOCK')" data-cat="STOCK" class="cat-btn px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap text-muted-foreground hover:text-foreground">
+            龙头个股
+          </button>
+        </div>
+
+        <div class="relative">
+          <input
+            type="text"
+            id="stock-search"
+            oninput="renderStockGrid()"
+            placeholder="搜索名称或代码 (如 科创50 / 688981)..."
+            class="w-full sm:w-60 h-8 pl-3 pr-3 rounded-md border border-input bg-background text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+      </div>
+
+      <!-- Quick Pill Jumper -->
+      <div id="stock-pills" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5"></div>
+
+      <!-- Stock Cards Grid -->
+      <div id="stock-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+    </section>
+
+    <!-- ==================== VIEW 2: 5-DOMAIN INTELLIGENCE ==================== -->
+    <section id="view-radar" class="space-y-3.5 hidden">
+      <div class="shadcn-card p-3.5 flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-semibold">TrendRadar · 五大领域 AI 情报简报</h2>
+          <p class="text-xs text-muted-foreground mt-0.5">已聚合 26 个热榜平台 + 9 个专业 RSS（含 AppStore/PlayStore/GitHub/金十/外媒）</p>
+        </div>
+        <span class="text-[11px] font-mono text-muted-foreground" id="radar-timestamp">--</span>
+      </div>
+
+      <!-- Domain Filter Pills -->
+      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar" id="radar-filter-bar"></div>
+
+      <!-- 5 Domain Bento Cards -->
+      <div id="radar-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+    </section>
+
+    <!-- ==================== VIEW 3: MARKET REVIEW ==================== -->
+    <section id="view-market" class="space-y-3.5 hidden">
+      <div id="market-container" class="space-y-3"></div>
+    </section>
+
   </main>
 
-  <!-- Bottom Tab Navigation (Mobile App Style) -->
-  <nav class="fixed bottom-0 inset-x-0 z-40 glass border-t border-slate-800/80 px-2 py-1.5">
-    <div class="max-w-md mx-auto grid grid-cols-3 gap-1">
-      <button onclick="switchTab('stocks')" id="tab-stocks" class="py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white">
-        11只标的与预判
+  <!-- Mobile Bottom Navigation Bar (shadcn Mobile Dock) -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur-lg px-3 py-1.5">
+    <div class="grid grid-cols-3 gap-1 max-w-md mx-auto">
+      <button onclick="switchView('stocks')" id="mtab-stocks" class="flex flex-col items-center justify-center py-1.5 rounded-lg text-[11px] font-medium transition">
+        <i data-lucide="candlestick-chart" class="w-4 h-4 mb-0.5"></i>
+        <span>标的与预判</span>
       </button>
-      <button onclick="switchTab('radar')" id="tab-radar" class="py-1.5 rounded-lg text-xs font-medium text-slate-400">
-        五大领域情报
+      <button onclick="switchView('radar')" id="mtab-radar" class="flex flex-col items-center justify-center py-1.5 rounded-lg text-[11px] font-medium transition">
+        <i data-lucide="sparkles" class="w-4 h-4 mb-0.5"></i>
+        <span>五域情报</span>
       </button>
-      <button onclick="switchTab('market')" id="tab-market" class="py-1.5 rounded-lg text-xs font-medium text-slate-400">
-        A股大盘复盘
+      <button onclick="switchView('market')" id="mtab-market" class="flex flex-col items-center justify-center py-1.5 rounded-lg text-[11px] font-medium transition">
+        <i data-lucide="compass" class="w-4 h-4 mb-0.5"></i>
+        <span>大盘复盘</span>
       </button>
     </div>
   </nav>
 
+  <!-- shadcn Sheet / Drawer Modal for Full Stock Report -->
+  <div id="detail-sheet" class="fixed inset-0 z-50 hidden">
+    <div onclick="closeSheet()" class="fixed inset-0 bg-black/65 backdrop-blur-xs transition-opacity"></div>
+    <div class="fixed inset-x-0 bottom-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[540px] max-h-[88vh] sm:max-h-screen bg-card border-t sm:border-t-0 sm:border-l border-border rounded-t-2xl sm:rounded-none flex flex-col z-10 shadow-2xl">
+      <!-- Grabber bar on mobile -->
+      <div class="sm:hidden w-10 h-1 rounded-full bg-muted-foreground/30 mx-auto mt-2.5"></div>
+      <div class="px-4 py-3 border-b border-border flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-semibold" id="sheet-title">标的详情</h3>
+          <p class="text-[11px] text-muted-foreground font-mono" id="sheet-subtitle">--</p>
+        </div>
+        <button onclick="closeSheet()" class="h-7 w-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground">
+          ✕
+        </button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-3 md-prose" id="sheet-body"></div>
+    </div>
+  </div>
+
   <script>
     const TOPIC = "trendradar-mac-511";
-    let parsedStocks = [];
-    let currentStockFilter = "ALL";
+    let activeView = "stocks";
+    let activeCategory = "ALL";
+    let focusedCode = "";
+    let activeRadarDomain = "ALL";
+    let allStocks = [];
+    let radarDomains = [];
 
-    function switchTab(tab) {
-      ["stocks", "radar", "market"].forEach(t => {
-        document.getElementById("view-" + t).classList.toggle("hidden", t !== tab);
-        const btn = document.getElementById("tab-" + t);
-        if (t === tab) {
-          btn.className = "py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white";
-        } else {
-          btn.className = "py-1.5 rounded-lg text-xs font-medium text-slate-400";
+    // Built-in snapshot fallback so page renders instantaneously even offline
+    const FALLBACK_RADAR = [
+      {
+        id: "ai",
+        badge: "AI & Tech",
+        title: "科技与 AI 最新成果",
+        subtitle: "GitHub Trending · HackerNews · HuggingFace · arXiv",
+        accent: "sky",
+        items: [
+          "Vercel 开源桌面 AI 代理「agent-desktop」，大幅提升 Agent 在本地操作系统的 GUI 自动化执行能力。",
+          "开发者推出「claude-mem」项目，专门解决 Claude 大模型在跨会话工程中的长期上下文记忆管理。",
+          "AI 制药里程碑：DeepMind 衍生公司同构实验室预测未来所有新药研发均将由 AI 辅助设计。",
+          "极客与合规风向：「Duo Translator」上架 Safari；同时 Anthropic 因版权顾虑开始限制 AI 克隆现有商业游戏。"
+        ]
+      },
+      {
+        id: "games",
+        badge: "AppStore & PlayStore",
+        title: "游戏圈与 App Store / Play Store 动态",
+        subtitle: "PocketGamer · TouchArcade · 游戏陀螺 · Steam · 机核",
+        accent: "emerald",
+        items: [
+          "乐元素二次元新作「白银之城」预约破 1500 万定档 12 月；11 月手游市场迎来 20 余款内容型新游测试与定档潮。",
+          "「宝可梦 TCG Pocket」全球累计营收达 2.33 亿美元；外媒披露 Roblox 超 80% 热门作品已接入 AI 工具。",
+          "国产买断制动作大作「影之刃零 (Phantom Blade Zero)」销量突破 400 万份，Steam 同时在线超 70 万且已收回研发成本。"
+        ]
+      },
+      {
+        id: "finance",
+        badge: "Macro & Futures",
+        title: "货币、宏观与金融期货",
+        subtitle: "金十数据 · 华尔街见闻 · 财联社 · 格隆汇",
+        accent: "amber",
+        items: [
+          "国内货币与流动性：央行下调股票回购再贷款利率至 1%，开展超千亿互换便利，并上调外汇准备金率 2 个百分点稳汇率。",
+          "海外宏观与美债：美股芯片股下挫拖累大盘并传导至 A 股科创板，市场紧盯美国中期选举开票动态。",
+          "大宗商品与期货：现货白银下探「50美元/盎司」，纯苯期货封跌停板；国际油价大跌反而刺激避险资金回流黄金。",
+          "A股资金流向：科创50及通信ETF大幅回调，避险资金向十年国债ETF与上证50蓝筹集聚。"
+        ]
+      },
+      {
+        id: "geo",
+        badge: "Geopolitics",
+        title: "国际政治与外媒视野",
+        subtitle: "联合早报 · 参考消息 · 卫星通讯社",
+        accent: "purple",
+        items: [
+          "中东局势现缓和契机：中方劝和促谈，伊朗最高领袖授权谈判并提出重开霍尔木兹海峡方案。",
+          "俄乌谈判窗口：美、乌、俄三国计划下周在阿联酋举行三方会谈，寻求地缘冲突破局。",
+          "美国中期选举焦点：提前投票破 5770 万张，最高法院驳回特朗普关于选票限制的请求。"
+        ]
+      },
+      {
+        id: "social",
+        badge: "Trends & Ideas",
+        title: "大众舆情热点与选题灵感",
+        subtitle: "微博 · 知乎 · B站 · 抖音 · 澎湃",
+        accent: "rose",
+        items: [
+          "「影之刃零」操作简化与无恶意设计出圈：引发关于现代硬核游戏走向轻量化与玩家友好度的全网热议。",
+          "「消费入座」与拒外带提议：零售巨头提议引爆餐饮商家服务边界与消费者权益大讨论。",
+          "选题与开发启发：可跟进「大厂硬核游戏为何集体走向降维与轻量化」深度分析，或开发「旧手机变本地AI防盗摄像头」工具。"
+        ]
+      }
+    ];
+
+    function toggleTheme() {
+      document.documentElement.classList.toggle("dark");
+    }
+
+    function classifyCode(code, name) {
+      if (/^(sh000|sz399|csi)/i.test(code)) return "INDEX";
+      if (/^(51|58|15)/.test(code) || (name || "").includes("ETF")) return "ETF";
+      return "STOCK";
+    }
+
+    function categoryLabel(cat) {
+      if (cat === "INDEX") return "宽基指数";
+      if (cat === "ETF") return "跨资产ETF";
+      return "龙头个股";
+    }
+
+    function scoreTone(score) {
+      const s = parseInt(score || "50", 10);
+      if (s >= 59) return {
+        badge: "bg-emerald-500/10 text-emerald-500 border-emerald-500/25",
+        bar: "bg-emerald-500",
+        text: "text-emerald-500"
+      };
+      if (s >= 48) return {
+        badge: "bg-amber-500/10 text-amber-500 border-amber-500/25",
+        bar: "bg-amber-500",
+        text: "text-amber-500"
+      };
+      return {
+        badge: "bg-rose-500/10 text-rose-500 border-rose-500/25",
+        bar: "bg-rose-500",
+        text: "text-rose-500"
+      };
+    }
+
+    function switchView(view) {
+      activeView = view;
+      ["stocks", "radar", "market"].forEach(v => {
+        document.getElementById("view-" + v).classList.toggle("hidden", v !== view);
+        const dbtn = document.getElementById("dtab-" + v);
+        if (dbtn) {
+          dbtn.className = v === view
+            ? "px-3 py-1 rounded-md text-xs font-medium bg-background text-foreground shadow-xs transition"
+            : "px-3 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground transition";
+        }
+        const mbtn = document.getElementById("mtab-" + v);
+        if (mbtn) {
+          mbtn.className = v === view
+            ? "flex flex-col items-center justify-center py-1.5 rounded-lg text-[11px] font-semibold bg-secondary text-foreground transition"
+            : "flex flex-col items-center justify-center py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground transition";
         }
       });
-      document.getElementById("stock-filter-bar").classList.toggle("hidden", tab !== "stocks");
     }
 
-    function badgeColor(score) {
-      const s = parseInt(score || "50", 10);
-      if (s >= 60) return "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
-      if (s >= 48) return "bg-amber-500/20 text-amber-300 border-amber-500/30";
-      return "bg-rose-500/20 text-rose-300 border-rose-500/30";
+    function setCategory(cat) {
+      activeCategory = cat;
+      focusedCode = "";
+      document.querySelectorAll(".cat-btn").forEach(btn => {
+        if (btn.dataset.cat === cat) {
+          btn.className = "cat-btn px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap bg-primary text-primary-foreground transition";
+        } else {
+          btn.className = "cat-btn px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap text-muted-foreground hover:text-foreground transition";
+        }
+      });
+      renderStockGrid();
     }
 
-    function renderStocks() {
-      const container = document.getElementById("view-stocks");
-      const filterBar = document.getElementById("stock-filter-bar");
-      if (!parsedStocks.length) {
-        container.innerHTML = `<div class="glass rounded-xl p-6 text-center text-sm text-slate-400">暂未读取到股票分析数据</div>`;
+    function toggleFocusCode(code) {
+      focusedCode = (focusedCode === code) ? "" : code;
+      renderStockGrid();
+    }
+
+    function openSheet(code) {
+      const item = allStocks.find(s => s.code === code);
+      if (!item) return;
+      document.getElementById("sheet-title").textContent = `${item.name} (${item.code})`;
+      document.getElementById("sheet-subtitle").textContent = `AI评分 ${item.score}/100 · 决策: ${item.advice} · 趋势: ${item.trend}`;
+      document.getElementById("sheet-body").innerHTML = marked.parse(item.rawMarkdown || "");
+      document.getElementById("detail-sheet").classList.remove("hidden");
+    }
+
+    function closeSheet() {
+      document.getElementById("detail-sheet").classList.add("hidden");
+    }
+
+    function renderStockGrid() {
+      const pillBar = document.getElementById("stock-pills");
+      const grid = document.getElementById("stock-grid");
+      const q = (document.getElementById("stock-search").value || "").trim().toLowerCase();
+
+      // Quick jump pills
+      pillBar.innerHTML = allStocks.map(s => {
+        const isFocused = focusedCode === s.code;
+        const t = scoreTone(s.score);
+        return `
+          <button onclick="toggleFocusCode('${s.code}')" class="px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap border transition flex items-center gap-1.5 ${
+            isFocused
+              ? "bg-primary text-primary-foreground border-primary"
+              : "bg-card text-foreground border-border hover:bg-accent"
+          }">
+            <span>${s.name}</span>
+            <span class="font-mono text-[10px] ${isFocused ? 'opacity-90' : t.text}">${s.score}</span>
+          </button>
+        `;
+      }).join("");
+
+      const filtered = allStocks.filter(s => {
+        if (focusedCode && s.code !== focusedCode) return false;
+        if (activeCategory !== "ALL" && s.category !== activeCategory) return false;
+        if (q && !s.name.toLowerCase().includes(q) && !s.code.toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      if (!filtered.length) {
+        grid.innerHTML = `<div class="shadcn-card p-8 text-center text-xs text-muted-foreground md:col-span-2">未找到匹配的标的，请切换上方分类或清空搜索词。</div>`;
         return;
       }
 
-      // Filter pills
-      let pillsHtml = `<button onclick="setStockFilter('ALL')" class="px-3 py-1 rounded-full text-xs whitespace-nowrap border ${currentStockFilter === 'ALL' ? 'bg-blue-600 text-white border-blue-500' : 'glass text-slate-300 border-slate-700'}">全部 (${parsedStocks.length})</button>`;
-      parsedStocks.forEach(s => {
-        const active = currentStockFilter === s.code;
-        pillsHtml += `<button onclick="setStockFilter('${s.code}')" class="px-3 py-1 rounded-full text-xs whitespace-nowrap border ${active ? 'bg-blue-600 text-white border-blue-500' : 'glass text-slate-300 border-slate-700'}">${s.name} · ${s.score}</button>`;
-      });
-      filterBar.innerHTML = pillsHtml;
+      grid.innerHTML = filtered.map(s => {
+        const t = scoreTone(s.score);
+        const chgNum = parseFloat(s.changePct || "0");
+        const chgClass = chgNum > 0 ? "text-emerald-500" : (chgNum < 0 ? "text-rose-500" : "text-muted-foreground");
+        const chgStr = s.changePct ? `${chgNum > 0 ? '+' : ''}${s.changePct}` : "";
 
-      const list = currentStockFilter === "ALL" ? parsedStocks : parsedStocks.filter(s => s.code === currentStockFilter);
-      container.innerHTML = list.map((s, idx) => `
-        <div class="glass rounded-xl p-3.5 space-y-2.5">
-          <div class="flex items-start justify-between gap-2">
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="text-base font-bold text-white">${s.name}</span>
-                <span class="text-xs font-mono text-slate-400">${s.code}</span>
+        return `
+          <article class="shadcn-card p-4 flex flex-col justify-between space-y-3.5 hover:border-zinc-700 transition">
+            <div class="space-y-2.5">
+              <!-- Card Top Header -->
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-base font-semibold tracking-tight truncate">${s.name}</h3>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-muted text-muted-foreground">${s.code}</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">${categoryLabel(s.category)}</span>
+                  </div>
+                  <div class="mt-1 flex items-baseline gap-2 font-mono">
+                    <span class="text-lg font-bold">${s.price || '--'}</span>
+                    ${chgStr ? `<span class="text-xs font-semibold ${chgClass}">${chgStr}</span>` : ''}
+                    ${s.bias ? `<span class="text-[11px] text-muted-foreground">MA5乖离 ${s.bias}</span>` : ''}
+                  </div>
+                </div>
+
+                <!-- Score Badge -->
+                <div class="text-right shrink-0">
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border font-mono ${t.badge}">
+                    ${s.score}分 · ${s.advice}
+                  </span>
+                  <div class="text-[11px] text-muted-foreground mt-1">趋势: <strong class="text-foreground">${s.trend}</strong> ${s.suggestedPos ? '· 仓位 ' + s.suggestedPos : ''}</div>
+                </div>
               </div>
-              <p class="text-xs text-slate-300 mt-1 leading-relaxed">${s.oneSentence || s.advice}</p>
+
+              <!-- Score Progress Bar -->
+              <div class="h-1 w-full rounded-full bg-muted overflow-hidden">
+                <div class="h-full ${t.bar}" style="width: ${Math.min(100, Math.max(10, parseInt(s.score||50)))}%"></div>
+              </div>
+
+              <!-- Core Conclusion Callout -->
+              <div class="rounded-lg bg-muted/45 border border-border px-3 py-2 text-xs leading-relaxed">
+                <span class="font-semibold text-foreground">核心决策：</span>
+                <span class="text-muted-foreground">${s.oneSentence || '暂无摘要'}</span>
+              </div>
+
+              <!-- 1-Week & 1-Month Forecast Block -->
+              ${(s.weekForecast || s.monthForecast) ? `
+              <div class="rounded-lg border border-border bg-background/60 p-3 space-y-2 text-xs">
+                <div class="flex items-center justify-between">
+                  <span class="font-semibold text-foreground flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                    未来 1 周 / 1 个月走势前瞻预判
+                  </span>
+                  <span class="text-[10px] font-mono text-muted-foreground">AI Forecast</span>
+                </div>
+                ${s.weekForecast ? `
+                <div class="leading-relaxed">
+                  <span class="inline-block px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-400 font-medium text-[11px] mr-1">未来1周(5日)</span>
+                  <span class="text-muted-foreground">${s.weekForecast}</span>
+                </div>` : ''}
+                ${s.monthForecast ? `
+                <div class="leading-relaxed pt-1 border-t border-border/60">
+                  <span class="inline-block px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 font-medium text-[11px] mr-1">未来1月(20日)</span>
+                  <span class="text-muted-foreground">${s.monthForecast}</span>
+                </div>` : ''}
+              </div>` : ''}
+
+              <!-- Sniper Points Grid -->
+              <div class="grid grid-cols-3 gap-2 text-[11px]">
+                <div class="rounded-md border border-border bg-muted/30 p-2">
+                  <div class="text-muted-foreground">🎯 理想买点</div>
+                  <div class="font-mono font-semibold text-emerald-500 mt-0.5 truncate" title="${s.idealBuy}">${s.idealBuy || '--'}</div>
+                </div>
+                <div class="rounded-md border border-border bg-muted/30 p-2">
+                  <div class="text-muted-foreground">🛑 严格止损</div>
+                  <div class="font-mono font-semibold text-rose-500 mt-0.5 truncate" title="${s.stopLoss}">${s.stopLoss || '--'}</div>
+                </div>
+                <div class="rounded-md border border-border bg-muted/30 p-2">
+                  <div class="text-muted-foreground">🎊 目标止盈</div>
+                  <div class="font-mono font-semibold text-amber-500 mt-0.5 truncate" title="${s.takeProfit}">${s.takeProfit || '--'}</div>
+                </div>
+              </div>
+
+              <!-- Position Advice Accordion -->
+              ${(s.noPosAdvice || s.hasPosAdvice) ? `
+              <div class="text-[11px] space-y-1 text-muted-foreground border-t border-border pt-2">
+                ${s.noPosAdvice ? `<div class="truncate" title="${s.noPosAdvice}"><strong class="text-foreground">空仓指令：</strong>${s.noPosAdvice.replace(/^空仓者建议[：:]?/, '')}</div>` : ''}
+                ${s.hasPosAdvice ? `<div class="truncate" title="${s.hasPosAdvice}"><strong class="text-foreground">持仓指令：</strong>${s.hasPosAdvice.replace(/^持仓者建议[：:]?/, '')}</div>` : ''}
+              </div>` : ''}
             </div>
-            <div class="text-right shrink-0">
-              <span class="inline-block px-2 py-0.5 rounded-md text-xs font-bold border ${badgeColor(s.score)}">
-                ${s.score}分 · ${s.advice}
+
+            <!-- Card Footer Button -->
+            <div class="pt-2 border-t border-border flex items-center justify-between">
+              <span class="text-[11px] font-mono text-muted-foreground">
+                支撑 ${s.support || '--'} / 压力 ${s.resistance || '--'}
               </span>
-              <div class="text-xs text-slate-400 mt-1">${s.trend} ${s.price ? "· " + s.price : ""}</div>
+              <button onclick="openSheet('${s.code}')" class="px-2.5 py-1 rounded-md border border-border bg-secondary hover:bg-accent text-foreground text-xs font-medium transition">
+                完整数据与检查单 →
+              </button>
             </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderRadar() {
+      const filterBar = document.getElementById("radar-filter-bar");
+      const grid = document.getElementById("radar-grid");
+      const list = radarDomains.length ? radarDomains : FALLBACK_RADAR;
+
+      filterBar.innerHTML = [
+        { id: "ALL", title: "全部五大领域" },
+        ...list.map(d => ({ id: d.id, title: d.title }))
+      ].map(tab => `
+        <button onclick="activeRadarDomain='${tab.id}'; renderRadar();" class="px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap border transition ${
+          activeRadarDomain === tab.id
+            ? "bg-primary text-primary-foreground border-primary"
+            : "bg-card text-muted-foreground border-border hover:text-foreground"
+        }">${tab.title}</button>
+      `).join("");
+
+      const visible = activeRadarDomain === "ALL" ? list : list.filter(d => d.id === activeRadarDomain);
+      grid.innerHTML = visible.map(dom => `
+        <div class="shadcn-card p-4 space-y-3">
+          <div class="flex items-start justify-between gap-2 border-b border-border pb-2.5">
+            <div>
+              <h3 class="text-sm font-semibold text-foreground">${dom.title}</h3>
+              <p class="text-[11px] text-muted-foreground font-mono mt-0.5">${dom.subtitle}</p>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-muted text-muted-foreground shrink-0">${dom.badge}</span>
           </div>
-
-          ${(s.weekForecast || s.monthForecast) ? `
-          <div class="rounded-lg bg-blue-950/40 border border-blue-500/20 p-2.5 space-y-1.5 text-xs">
-            <div class="font-semibold text-blue-300">未来 1 周 / 1 个月走势前瞻预判</div>
-            ${s.weekForecast ? `<div class="text-slate-200"><span class="text-blue-400 font-medium">未来1周：</span>${s.weekForecast}</div>` : ""}
-            ${s.monthForecast ? `<div class="text-slate-200"><span class="text-indigo-400 font-medium">未来1月：</span>${s.monthForecast}</div>` : ""}
-          </div>` : ""}
-
-          ${(s.idealBuy || s.stopLoss || s.takeProfit) ? `
-          <div class="grid grid-cols-3 gap-1.5 text-[11px]">
-            <div class="rounded bg-slate-800/70 p-2">
-              <div class="text-slate-400">理想买点</div>
-              <div class="text-emerald-300 font-medium mt-0.5 truncate" title="${s.idealBuy}">${s.idealBuy || "--"}</div>
-            </div>
-            <div class="rounded bg-slate-800/70 p-2">
-              <div class="text-slate-400">严格止损</div>
-              <div class="text-rose-300 font-medium mt-0.5 truncate" title="${s.stopLoss}">${s.stopLoss || "--"}</div>
-            </div>
-            <div class="rounded bg-slate-800/70 p-2">
-              <div class="text-slate-400">目标止盈</div>
-              <div class="text-amber-300 font-medium mt-0.5 truncate" title="${s.takeProfit}">${s.takeProfit || "--"}</div>
-            </div>
-          </div>` : ""}
-
-          <details class="group pt-1 border-t border-slate-800">
-            <summary class="text-xs text-blue-400 cursor-pointer select-none flex items-center justify-between">
-              <span>展开完整行情、均线、空仓/持仓建议与检查清单</span>
-              <span class="group-open:rotate-180 transition">▼</span>
-            </summary>
-            <div class="md-body pt-2">${marked.parse(s.rawMarkdown)}</div>
-          </details>
+          <ul class="space-y-2">
+            ${dom.items.map((item, i) => `
+              <li class="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+                <span class="w-4 h-4 rounded bg-secondary text-foreground font-mono text-[10px] flex items-center justify-center shrink-0 mt-0.5">${i + 1}</span>
+                <span>${item}</span>
+              </li>
+            `).join("")}
+          </ul>
         </div>
       `).join("");
     }
 
-    function setStockFilter(code) {
-      currentStockFilter = code;
-      renderStocks();
+    function parseRadarMessage(msgText) {
+      const mapDefs = [
+        { key: "核心热点态势", id: "ai", badge: "AI & Tech", title: "科技与 AI 最新成果", subtitle: "GitHub · HackerNews · HuggingFace · arXiv" },
+        { key: "异动与弱信号", id: "games", badge: "AppStore & PlayStore", title: "游戏圈与 App Store / Play Store 动态", subtitle: "PocketGamer · TouchArcade · 游戏陀螺 · Steam" },
+        { key: "舆论风向争议", id: "finance", badge: "Macro & Futures", title: "货币、宏观与金融期货", subtitle: "金十数据 · 华尔街见闻 · 财联社 · 格隆汇" },
+        { key: "RSS 深度洞察", id: "geo", badge: "Geopolitics", title: "国际政治与外媒视野", subtitle: "联合早报 · 参考消息 · 卫星通讯社" },
+        { key: "研判策略建议", id: "social", badge: "Trends & Ideas", title: "大众舆情热点与选题灵感", subtitle: "微博 · 知乎 · B站 · 抖音 · 澎湃" }
+      ];
+      const out = [];
+      mapDefs.forEach(def => {
+        const reg = new RegExp(`\\*\\*${def.key}\\*\\*([\\s\\S]*?)(?=\\n\\*\\*(?:核心热点态势|舆论风向争议|异动与弱信号|RSS 深度洞察|研判策略建议)\\*\\*|\\n> 更新时间|$)`);
+        const m = msgText.match(reg);
+        if (m && m[1].trim()) {
+          const lines = m[1].trim().split("\n").map(l => l.trim()).filter(Boolean);
+          const items = [];
+          lines.forEach(l => {
+            const clean = l.replace(/^\d+\.\s*/, "");
+            if (clean) items.push(clean);
+          });
+          if (items.length) out.push({ ...def, items });
+        }
+      });
+      return out.length ? out : FALLBACK_RADAR;
     }
 
-    async function loadData() {
-      const statusEl = document.getElementById("status-bar");
-      statusEl.textContent = "正在拉取 ntfy.sh/" + TOPIC + " 最新数据...";
+    async function loadNtfyData() {
+      const statusEl = document.getElementById("sync-status");
+      const iconEl = document.getElementById("refresh-icon");
+      statusEl.textContent = "正在同步 ntfy.sh/" + TOPIC + " ...";
+      if (iconEl) iconEl.classList.add("animate-spin");
+
       try {
         const res = await fetch(`https://ntfy.sh/${TOPIC}/json?poll=1`);
-        const text = await res.text();
-        const lines = text.trim().split("\n").filter(Boolean).map(l => JSON.parse(l)).filter(x => x.event === "message");
+        const raw = await res.text();
+        const messages = raw.trim().split("\n").filter(Boolean).map(l => JSON.parse(l)).filter(x => x.event === "message");
 
         // 1. Reassemble Stock Dashboard chunks
-        const stockChunks = lines.filter(x => (x.title || "").includes("股票分析报告") && !(x.message || "").includes("# 📈 大盘复盘") && !(x.message || "").includes("五、消息催化"));
-        // Sort by batch index if present
+        const stockChunks = messages.filter(x =>
+          (x.title || "").includes("股票分析报告") &&
+          !(x.message || "").includes("# 📈 大盘复盘") &&
+          !(x.message || "").includes("五、消息催化")
+        );
         stockChunks.sort((a, b) => {
           const ma = (a.title || "").match(/\((\d+)\/(\d+)\)/);
           const mb = (b.title || "").match(/\((\d+)\/(\d+)\)/);
@@ -198,7 +750,6 @@
         });
         const fullStockMd = stockChunks.map(x => x.message).join("\n");
 
-        // Extract summary scores
         const scoreMap = {};
         const summaryRegex = /\*\*([^*]+?)\(([^)]+)\)\*\*:\s*([^|]+)\|\s*评分\s*(\d+)\s*\|\s*([^\n]+)/g;
         let sm;
@@ -212,15 +763,15 @@
           };
         }
 
-        // Split by stock sections (`## `)
         const sections = fullStockMd.split(/\n(?=##\s+[🟢🟡🔴⚪])/);
-        parsedStocks = [];
+        allStocks = [];
         sections.forEach(sec => {
           const hm = sec.match(/^##\s+[🟢🟡🔴⚪]\s+(.+?)\s*\(([^)]+)\)/);
           if (!hm) return;
           const name = hm[1].trim();
           const code = hm[2].trim();
           const meta = scoreMap[code] || { name, code, advice: "观望", score: "50", trend: "震荡" };
+
           const oneM = sec.match(/\*\*一句话决策\*\*:\s*([^\n]+)/);
           const wkM = sec.match(/\*\*📅 未来 1 周推演\*\*：([^\n]+)/);
           const moM = sec.match(/\*\*📆 未来 1 个月中线预判\*\*：([^\n]+)/);
@@ -228,52 +779,94 @@
           const stopM = sec.match(/\|\s*🛑 止损位\s*\|\s*([^|]+)\|/);
           const tpM = sec.match(/\|\s*🎊 目标位\s*\|\s*([^|]+)\|/);
           const priceM = sec.match(/\|\s*当前价\s*\|\s*([0-9.]+)\s*\|/);
+          const chgM = sec.match(/\|\s*[0-9.]+\s*\|\s*[0-9.]+\s*\|\s*[0-9.]+\s*\|\s*[0-9.]+\s*\|\s*[0-9.]+\s*\|\s*([+-]?[0-9.]+%)\s*\|/);
+          const supM = sec.match(/\|\s*支撑位\s*\|\s*([0-9.]+)\s*\|/);
+          const resM = sec.match(/\|\s*压力位\s*\|\s*([0-9.]+)\s*\|/);
+          const biasM = sec.match(/\|\s*乖离率\(MA5\)\s*\|\s*([^|]+)\|/);
+          const posM = sec.match(/\*\*💰 仓位建议\*\*:\s*(?:建议仓位[：:]?)?([^\n]+)/);
+          const noPosM = sec.match(/\|\s*🆕 \*\*空仓者\*\*\s*\|\s*([^|]+)\|/);
+          const hasPosM = sec.match(/\|\s*💼 \*\*持仓者\*\*\s*\|\s*([^|]+)\|/);
 
-          parsedStocks.push({
+          allStocks.push({
             ...meta,
+            category: classifyCode(code, name),
             oneSentence: oneM ? oneM[1].trim() : "",
-            weekForecast: wkM ? wkM[1].trim() : "",
-            monthForecast: moM ? moM[1].trim() : "",
+            weekForecast: wkM ? wkM[1].trim().replace(/^未来1周（5个交易日）走势推演：/, "") : "",
+            monthForecast: moM ? moM[1].trim().replace(/^未来1个月（20个交易日）中线趋势预判：/, "") : "",
             idealBuy: buyM ? buyM[1].trim() : "",
             stopLoss: stopM ? stopM[1].trim() : "",
             takeProfit: tpM ? tpM[1].trim() : "",
             price: priceM ? priceM[1].trim() : "",
+            changePct: chgM ? chgM[1].trim() : "",
+            support: supM ? supM[1].trim() : "",
+            resistance: resM ? resM[1].trim() : "",
+            bias: biasM ? biasM[1].trim() : "",
+            suggestedPos: posM ? posM[1].trim() : "",
+            noPosAdvice: noPosM ? noPosM[1].trim() : "",
+            hasPosAdvice: hasPosM ? hasPosM[1].trim() : "",
             rawMarkdown: sec
           });
         });
 
-        document.getElementById("kpi-stocks").textContent = parsedStocks.length + " 只已就绪";
-        renderStocks();
+        // Sort by score descending
+        allStocks.sort((a, b) => parseInt(b.score || 0) - parseInt(a.score || 0));
 
-        // 2. Reassemble Market Review
-        const marketChunks = lines.filter(x => (x.message || "").includes("大盘复盘") || (x.message || "").includes("六、明日交易计划"));
-        const fullMarketMd = marketChunks.map(x => x.message).join("\n");
-        const sigM = fullMarketMd.match(/盘面信号\*\*：([^\n]+)/);
-        document.getElementById("kpi-market").textContent = sigM ? sigM[1].trim() : "43/100 防守";
-        document.getElementById("view-market").innerHTML = `<div class="glass rounded-xl p-4 md-body">${marked.parse(fullMarketMd || "暂无大盘复盘数据")}</div>`;
-
-        // 3. Latest TrendRadar 5-domain AI report
-        const radarMsgs = lines.filter(x => (x.message || "").includes("AI 热点分析"));
-        const latestRadar = radarMsgs.length ? radarMsgs[radarMsgs.length - 1] : null;
-        if (latestRadar) {
-          document.getElementById("kpi-radar").textContent = "5大领域已更新";
-          const formattedRadar = latestRadar.message
-            .replace(/\*\*核心热点态势\*\*/g, "## 🤖 科技与 AI 最新成果")
-            .replace(/\*\*舆论风向争议\*\*/g, "## 💰 货币、宏观与金融期货")
-            .replace(/\*\*异动与弱信号\*\*/g, "## 🎮 游戏圈与 App Store / Play Store 动态")
-            .replace(/\*\*RSS 深度洞察\*\*/g, "## 🌍 国际政治与外媒视野")
-            .replace(/\*\*研判策略建议\*\*/g, "## 🔥 大众舆情热点与选题灵感");
-          document.getElementById("view-radar").innerHTML = `<div class="glass rounded-xl p-4 md-body">${marked.parse(formattedRadar)}</div>`;
+        // Update top metrics
+        const holdCount = allStocks.filter(s => s.advice.includes("持有") || s.advice.includes("买")).length;
+        const watchCount = allStocks.length - holdCount;
+        document.getElementById("metric-stock-count").textContent = `${allStocks.length} 只`;
+        document.getElementById("metric-stock-split").textContent = `${holdCount} 持有 / ${watchCount} 观望`;
+        if (allStocks.length >= 2) {
+          document.getElementById("metric-top-bull").textContent = `${allStocks[0].name}(${allStocks[0].score})`;
+          const last = allStocks[allStocks.length - 1];
+          document.getElementById("metric-top-bear").textContent = `${last.name}(${last.score})`;
         }
 
-        const lastTime = lines.length ? new Date(lines[lines.length - 1].time * 1000).toLocaleString("zh-CN") : "--";
-        statusEl.textContent = `已实时同步 ntfy.sh/${TOPIC} · 最新消息: ${lastTime}`;
-      } catch (err) {
-        statusEl.textContent = "同步失败: " + err.message;
+        renderStockGrid();
+
+        // 2. Market Review
+        const marketChunks = messages.filter(x => (x.message || "").includes("大盘复盘") || (x.message || "").includes("六、明日交易计划"));
+        const fullMarketMd = marketChunks.map(x => x.message).join("\n");
+        const sigM = fullMarketMd.match(/盘面信号\*\*：\s*(\d+)\/100（([^）]+)）/);
+        if (sigM) {
+          document.getElementById("metric-market-score").textContent = `${sigM[1]} / 100`;
+          document.getElementById("metric-market-tag").textContent = sigM[2];
+          document.getElementById("metric-market-bar").style.width = `${sigM[1]}%`;
+        } else {
+          document.getElementById("metric-market-score").textContent = "43 / 100";
+          document.getElementById("metric-market-tag").textContent = "震荡防守";
+        }
+        document.getElementById("market-container").innerHTML = `
+          <div class="shadcn-card p-4 sm:p-5 md-prose">
+            ${marked.parse(fullMarketMd || "暂无大盘复盘数据")}
+          </div>
+        `;
+
+        // 3. TrendRadar 5-Domain AI Report
+        const radarMsgs = messages.filter(x => (x.message || "").includes("AI 热点分析"));
+        if (radarMsgs.length) {
+          const latest = radarMsgs[radarMsgs.length - 1];
+          radarDomains = parseRadarMessage(latest.message);
+          document.getElementById("radar-timestamp").textContent = new Date(latest.time * 1000).toLocaleString("zh-CN");
+        } else {
+          radarDomains = FALLBACK_RADAR;
+        }
+        renderRadar();
+
+        const lastTs = messages.length ? new Date(messages[messages.length - 1].time * 1000).toLocaleString("zh-CN") : "--";
+        statusEl.textContent = `ntfy.sh/${TOPIC} · 最新同步 ${lastTs}`;
+      } catch (e) {
+        statusEl.textContent = "离线缓存模式 · " + e.message;
+        radarDomains = FALLBACK_RADAR;
+        renderRadar();
+      } finally {
+        if (iconEl) iconEl.classList.remove("animate-spin");
       }
     }
 
-    loadData();
+    lucide.createIcons();
+    switchView("stocks");
+    loadNtfyData();
   </script>
 </body>
 </html>
