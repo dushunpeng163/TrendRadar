@@ -99,6 +99,12 @@ platforms:
     - id: "zhihu"
       name: "知乎"
       expected_domain: "zhihu.com"
+    - id: "jin10"
+      name: "金十数据"
+    - id: "wallstreetcn-quick"
+      name: "华尔街见闻快讯"
+    - id: "cls-telegraph"
+      name: "财联社电报"
 
 
 
