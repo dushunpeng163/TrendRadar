@@ -66,6 +66,7 @@
     }
 
     * { -webkit-tap-highlight-color: transparent; }
+    button:focus, button:focus-visible { outline: none; box-shadow: none; }
     html { scroll-behavior: smooth; }
     body {
       background-color: var(--bg-0);
@@ -203,23 +204,27 @@
     <!-- ==================== TAB 1: WATCHLIST & FORECAST ==================== -->
     <section id="panel-stocks" class="space-y-3">
 
-      <!-- One Unified Filter Bar (No double rows!) -->
+      <!-- One Unified Signal Filter Bar (Traffic Light Action Signals) -->
       <div class="flex items-center justify-between gap-2">
-        <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
-          <button onclick="setCat('ALL')" data-cat="ALL" class="cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-ink-1 text-surface-0 ease-out-expo duration-300 tap-scale whitespace-nowrap">
-            全部 (11)
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" id="signal-filter-bar">
+          <button onclick="setCat('ALL')" data-cat="ALL" class="cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-ink-1 text-surface-0 ease-out-expo duration-300 tap-scale whitespace-nowrap flex items-center gap-1.5">
+            <span>全部</span>
+            <span class="font-mono opacity-80" id="cnt-ALL">11</span>
           </button>
-          <button onclick="setCat('HOLD')" data-cat="HOLD" class="cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-surface-1 text-ink-2 border border-[var(--line)] ease-out-expo duration-300 tap-scale whitespace-nowrap">
-            高分持有 (2)
+          <button onclick="setCat('BULL')" data-cat="BULL" class="cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-surface-1 text-ink-2 border border-[var(--line)] ease-out-expo duration-300 tap-scale whitespace-nowrap flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>偏多/可持有</span>
+            <span class="font-mono opacity-75" id="cnt-BULL">3</span>
           </button>
-          <button onclick="setCat('INDEX')" data-cat="INDEX" class="cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-surface-1 text-ink-2 border border-[var(--line)] ease-out-expo duration-300 tap-scale whitespace-nowrap">
-            宽基指数 (5)
+          <button onclick="setCat('RANGE')" data-cat="RANGE" class="cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-surface-1 text-ink-2 border border-[var(--line)] ease-out-expo duration-300 tap-scale whitespace-nowrap flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            <span>震荡观察</span>
+            <span class="font-mono opacity-75" id="cnt-RANGE">4</span>
           </button>
-          <button onclick="setCat('ETF')" data-cat="ETF" class="cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-surface-1 text-ink-2 border border-[var(--line)] ease-out-expo duration-300 tap-scale whitespace-nowrap">
-            债/金/股ETF (4)
-          </button>
-          <button onclick="setCat('STOCK')" data-cat="STOCK" class="cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-surface-1 text-ink-2 border border-[var(--line)] ease-out-expo duration-300 tap-scale whitespace-nowrap">
-            个股 (2)
+          <button onclick="setCat('BEAR')" data-cat="BEAR" class="cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-surface-1 text-ink-2 border border-[var(--line)] ease-out-expo duration-300 tap-scale whitespace-nowrap flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+            <span>空头防守/超卖</span>
+            <span class="font-mono opacity-75" id="cnt-BEAR">4</span>
           </button>
         </div>
       </div>
@@ -430,13 +435,42 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+    function classifySignal(item) {
+      const sc = parseInt(item.score || 50, 10);
+      const tr = item.trend || "";
+      const adv = item.advice || "";
+      if (sc >= 58 || adv.includes("买") || adv.includes("持有") || tr.includes("看多")) {
+        return "BULL";
+      }
+      if (tr.includes("看空") || adv.includes("卖") || adv.includes("减") || sc <= 45) {
+        return "BEAR";
+      }
+      return "RANGE";
+    }
+
+    function updateSignalCounts(list) {
+      const counts = { ALL: list.length, BULL: 0, RANGE: 0, BEAR: 0 };
+      list.forEach(item => {
+        const sig = classifySignal(item);
+        counts[sig] = (counts[sig] || 0) + 1;
+      });
+      ["ALL", "BULL", "RANGE", "BEAR"].forEach(k => {
+        const el = document.getElementById("cnt-" + k);
+        if (el) el.textContent = counts[k];
+      });
+      const bannerCounts = document.getElementById("banner-counts");
+      if (bannerCounts) {
+        bannerCounts.textContent = `${counts.BULL}偏多 · ${counts.RANGE}震荡 · ${counts.BEAR}防守`;
+      }
+    }
+
     function setCat(cat) {
       currentCat = cat;
       document.querySelectorAll(".cat-pill").forEach(btn => {
         if (btn.dataset.cat === cat) {
-          btn.className = "cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-ink-1 text-surface-0 ease-out-expo duration-300 tap-scale whitespace-nowrap";
+          btn.className = "cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-ink-1 text-surface-0 ease-out-expo duration-300 tap-scale whitespace-nowrap flex items-center gap-1.5";
         } else {
-          btn.className = "cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-surface-1 text-ink-2 border border-[var(--line)] ease-out-expo duration-300 tap-scale whitespace-nowrap";
+          btn.className = "cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-surface-1 text-ink-2 border border-[var(--line)] ease-out-expo duration-300 tap-scale whitespace-nowrap flex items-center gap-1.5";
         }
       });
       renderStocks();
@@ -454,11 +488,11 @@
     function renderStocks() {
       const container = document.getElementById("stock-list");
       const sourceList = stocksData.length ? stocksData : FALLBACK_STOCKS;
+      updateSignalCounts(sourceList);
 
       const filtered = sourceList.filter(item => {
         if (currentCat === "ALL") return true;
-        if (currentCat === "HOLD") return parseInt(item.score || 0) >= 58 || item.advice.includes("持有");
-        return item.category === currentCat;
+        return classifySignal(item) === currentCat;
       });
 
       if (!filtered.length) {
@@ -771,8 +805,6 @@
         if (parsed.length) {
           parsed.sort((a, b) => parseInt(b.score || 0) - parseInt(a.score || 0));
           stocksData = parsed;
-          const holdCnt = parsed.filter(s => parseInt(s.score || 0) >= 58 || s.advice.includes("持有")).length;
-          document.getElementById("banner-counts").textContent = `${holdCnt}持有 · ${parsed.length - holdCnt}观望`;
           renderStocks();
         }
 
