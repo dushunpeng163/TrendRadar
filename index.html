@@ -1,747 +1,279 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>热点新闻分析</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-            margin: 0;
-            padding: 16px;
-            background: #fafafa;
-            color: #333;
-            line-height: 1.5;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
-        }
-
-        .header {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
-            padding: 32px 24px;
-            text-align: center;
-            position: relative;
-        }
-
-        .save-buttons {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            display: flex;
-            gap: 8px;
-        }
-
-        .save-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            backdrop-filter: blur(10px);
-            white-space: nowrap;
-        }
-
-        .save-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: rgba(255, 255, 255, 0.5);
-            transform: translateY(-1px);
-        }
-
-        .save-btn:active {
-            transform: translateY(0);
-        }
-
-        .save-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .header-title {
-            font-size: 22px;
-            font-weight: 700;
-            margin: 0 0 20px 0;
-        }
-
-        .header-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            font-size: 14px;
-            opacity: 0.95;
-        }
-
-        .info-item {
-            text-align: center;
-        }
-
-        .info-label {
-            display: block;
-            font-size: 12px;
-            opacity: 0.8;
-            margin-bottom: 4px;
-        }
-
-        .info-value {
-            font-weight: 600;
-            font-size: 16px;
-        }
-
-        .content {
-            padding: 24px;
-        }
-
-        .word-group {
-            margin-bottom: 40px;
-        }
-
-        .word-group:first-child {
-            margin-top: 0;
-        }
-
-        .word-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .word-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .word-name {
-            font-size: 17px;
-            font-weight: 600;
-            color: #1a1a1a;
-        }
-
-        .word-count {
-            color: #666;
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        .word-count.hot {
-            color: #dc2626;
-            font-weight: 600;
-        }
-
-        .word-count.warm {
-            color: #ea580c;
-            font-weight: 600;
-        }
-
-        .word-index {
-            color: #999;
-            font-size: 12px;
-        }
-
-        .news-item {
-            margin-bottom: 20px;
-            padding: 16px 0;
-            border-bottom: 1px solid #f5f5f5;
-            position: relative;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .news-item:last-child {
-            border-bottom: none;
-        }
-
-        .news-number {
-            color: #999;
-            font-size: 13px;
-            font-weight: 600;
-            min-width: 20px;
-            text-align: center;
-            flex-shrink: 0;
-            background: #f8f9fa;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            align-self: flex-start;
-            margin-top: 8px;
-        }
-
-        .news-content {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .news-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-            flex-wrap: wrap;
-        }
-
-        .source-name {
-            color: #666;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .rank-num {
-            color: #fff;
-            background: #6b7280;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 2px 6px;
-            border-radius: 10px;
-            min-width: 18px;
-            text-align: center;
-        }
-
-        .rank-num.top {
-            background: #dc2626;
-        }
-
-        .rank-num.high {
-            background: #ea580c;
-        }
-
-        .time-info {
-            color: #999;
-            font-size: 11px;
-        }
-
-        .count-info {
-            color: #059669;
-            font-size: 11px;
-            font-weight: 500;
-        }
-
-        .news-title {
-            font-size: 15px;
-            line-height: 1.4;
-            color: #1a1a1a;
-            margin: 0;
-        }
-
-        .news-link {
-            color: #2563eb;
-            text-decoration: none;
-        }
-
-        .news-link:hover {
-            text-decoration: underline;
-        }
-
-        .news-link:visited {
-            color: #7c3aed;
-        }
-
-        .footer {
-            margin-top: 32px;
-            padding: 20px 24px;
-            background: #f8f9fa;
-            border-top: 1px solid #e5e7eb;
-            text-align: center;
-        }
-
-        .footer-content {
-            font-size: 13px;
-            color: #6b7280;
-            line-height: 1.6;
-        }
-
-        .footer-link {
-            color: #4f46e5;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s ease;
-        }
-
-        .footer-link:hover {
-            color: #7c3aed;
-            text-decoration: underline;
-        }
-
-        .project-name {
-            font-weight: 600;
-            color: #374151;
-        }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 12px;
-            }
-            .header {
-                padding: 24px 20px;
-            }
-            .content {
-                padding: 20px;
-            }
-            .footer {
-                padding: 16px 20px;
-            }
-            .header-info {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-            .news-header {
-                gap: 6px;
-            }
-            .news-item {
-                gap: 8px;
-            }
-            .news-number {
-                width: 20px;
-                height: 20px;
-                font-size: 12px;
-            }
-            .save-buttons {
-                position: static;
-                margin-bottom: 16px;
-                display: flex;
-                gap: 8px;
-                justify-content: center;
-                flex-direction: column;
-                width: 100%;
-            }
-            .save-btn {
-                width: 100%;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>全域情报与量化决策看板 · 511</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    body { background: #0b0f17; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+    .glass { background: rgba(17, 24, 39, 0.86); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    .md-body h1, .md-body h2 { font-size: 1.05rem; font-weight: 700; color: #f8fafc; margin-top: 0.75rem; margin-bottom: 0.4rem; }
+    .md-body h3, .md-body h4 { font-size: 0.92rem; font-weight: 600; color: #93c5fd; margin-top: 0.65rem; margin-bottom: 0.3rem; }
+    .md-body p, .md-body li { font-size: 0.85rem; line-height: 1.55; color: #cbd5e1; }
+    .md-body ul { list-style: disc; padding-left: 1.2rem; margin: 0.35rem 0; }
+    .md-body blockquote { border-left: 3px solid #3b82f6; padding: 0.4rem 0.7rem; background: rgba(59,130,246,0.1); border-radius: 0.375rem; margin: 0.5rem 0; }
+    .md-body table { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin: 0.5rem 0; display: block; overflow-x: auto; }
+    .md-body th, .md-body td { border: 1px solid rgba(255,255,255,0.1); padding: 0.35rem 0.5rem; text-align: left; white-space: nowrap; }
+    .md-body th { background: rgba(255,255,255,0.05); color: #94a3b8; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+  </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="save-buttons">
-                <button class="save-btn" onclick="saveAsImage()">保存为图片</button>
-                <button class="save-btn" onclick="saveAsMultipleImages()">分段保存</button>
-            </div>
-            <div class="header-title">热点新闻分析</div>
-            <div class="header-info">
-                <div class="info-item">
-                    <span class="info-label">报告类型</span>
-                    <span class="info-value">当日汇总</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">新闻总数</span>
-                    <span class="info-value">387 条</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">热点新闻</span>
-                    <span class="info-value">5 条</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">生成时间</span>
-                    <span class="info-value">06-16 07:17</span>
-                </div>
-            </div>
+<body class="pb-24 min-h-screen">
+  <!-- Sticky Mobile Header -->
+  <header class="sticky top-0 z-30 glass px-4 py-3">
+    <div class="max-w-3xl mx-auto flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" id="live-dot"></span>
+          <h1 class="text-base font-bold tracking-tight text-white">全域情报与量化决策台</h1>
         </div>
+        <p class="text-[11px] text-slate-400 mt-0.5" id="status-bar">正在同步 ntfy.sh/trendradar-mac-511 ...</p>
+      </div>
+      <button onclick="loadData()" class="px-3 py-1.5 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs font-medium active:scale-95 transition">
+        刷新数据
+      </button>
+    </div>
+  </header>
 
-        <div class="content">
-            <div class="word-group">
-                <div class="word-header">
-                    <div class="word-info">
-                        <div class="word-name">ai 人工智能</div>
-                        <div class="word-count hot">3 条</div>
-                    </div>
-                    <div class="word-index">1/4</div>
-                </div>
-
-                <div class="news-item">
-                    <div class="news-number">1</div>
-                    <div class="news-content">
-                        <div class="news-header">
-                            <span class="source-name">财联社热门</span>
-                            <span class="rank-num high">7-8</span>
-                            <span class="time-info">00:23~07:17</span>
-                            <span class="count-info">15次</span>
-                        </div>
-                        <div class="news-title">
-                            <a href="https://www.cls.cn/detail/2057563" target="_blank" class="news-link">上市首日暴涨140% 军用无人机公司登陆纽交所 AI打造产品核心竞争力</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="news-item">
-                    <div class="news-number">2</div>
-                    <div class="news-content">
-                        <div class="news-header">
-                            <span class="source-name">tieba</span>
-                            <span class="rank-num">18-19</span>
-                            <span class="time-info">00:23~07:17</span>
-                            <span class="count-info">15次</span>
-                        </div>
-                        <div class="news-title">
-                            <a href="https://tieba.baidu.com/hottopic/browse/hottopic?topic_id=28342819&topic_name=%E4%BC%8A%E6%9C%97%E7%96%91%E7%94%A8AI%E4%BC%AA%E9%80%A0%E4%BB%A5%E5%86%9BF35%E6%AE%8B%E9%AA%B8%E5%9B%BE" target="_blank" class="news-link">伊朗疑用AI伪造以军F35残骸图</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="news-item">
-                    <div class="news-number">3</div>
-                    <div class="news-content">
-                        <div class="news-header">
-                            <span class="source-name">zhihu</span>
-                            <span class="rank-num top">5-13</span>
-                            <span class="time-info">00:23~07:17</span>
-                            <span class="count-info">15次</span>
-                        </div>
-                        <div class="news-title">
-                            <a href="https://www.zhihu.com/question/596907281" target="_blank" class="news-link">罗杰·彭罗斯说无论意识是什么，都绝对不是一种计算。意思是：任何 AI 都不可能产生意识？</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="word-group">
-                <div class="word-header">
-                    <div class="word-info">
-                        <div class="word-name">DeepSeek 梁文锋</div>
-                        <div class="word-count">1 条</div>
-                    </div>
-                    <div class="word-index">2/4</div>
-                </div>
-
-                <div class="news-item">
-                    <div class="news-number">1</div>
-                    <div class="news-content">
-                        <div class="news-header">
-                            <span class="source-name">华尔街见闻</span>
-                            <span class="rank-num high">8-9</span>
-                            <span class="time-info">00:23~07:17</span>
-                            <span class="count-info">15次</span>
-                        </div>
-                        <div class="news-title">
-                            <a href="https://wallstreetcn.com/articles/3749141" target="_blank" class="news-link">恒生生科指数1月以来涨超60%，中国创新药的"DeepSeek时刻"超过了AI</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="word-group">
-                <div class="word-header">
-                    <div class="word-info">
-                        <div class="word-name">哪吒 饺子</div>
-                        <div class="word-count">1 条</div>
-                    </div>
-                    <div class="word-index">3/4</div>
-                </div>
-
-                <div class="news-item">
-                    <div class="news-number">1</div>
-                    <div class="news-content">
-                        <div class="news-header">
-                            <span class="source-name">百度热搜</span>
-                            <span class="rank-num">24-30</span>
-                            <span class="time-info">00:57~06:55</span>
-                            <span class="count-info">7次</span>
-                        </div>
-                        <div class="news-title">
-                            <a href="https://www.baidu.com/s?wd=%E3%80%8A%E5%93%AA%E5%90%922%E3%80%8B%E7%89%87%E6%96%B9%E6%88%96%E5%88%86%E8%B4%A652%E4%BA%BF%E5%85%83" target="_blank" class="news-link">《哪吒2》片方或分账52亿元</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="word-group">
-                <div class="word-header">
-                    <div class="word-info">
-                        <div class="word-name">米哈游 原神 星穹铁道</div>
-                        <div class="word-count">1 条</div>
-                    </div>
-                    <div class="word-index">4/4</div>
-                </div>
-
-                <div class="news-item">
-                    <div class="news-number">1</div>
-                    <div class="news-content">
-                        <div class="news-header">
-                            <span class="source-name">zhihu</span>
-                            <span class="rank-num top">5</span>
-                            <span class="time-info">06:55~07:17</span>
-                            <span class="count-info">2次</span>
-                        </div>
-                        <div class="news-title">
-                            <a href="https://www.zhihu.com/question/1905395386765537540" target="_blank" class="news-link">目前原神所有自机角色谁最有可能出新形态?</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="footer">
-            <div class="footer-content">
-                由 <span class="project-name">TrendRadar</span> 生成 · 
-                <a href="https://github.com/sansan0/TrendRadar" target="_blank" class="footer-link">
-                    GitHub 开源项目
-                </a>
-            </div>
-        </div>
+  <main class="max-w-3xl mx-auto px-3 pt-3 space-y-3">
+    <!-- Quick Summary Strip -->
+    <div id="kpi-strip" class="grid grid-cols-3 gap-2">
+      <div class="glass rounded-xl p-2.5">
+        <div class="text-[11px] text-slate-400">监控标的</div>
+        <div class="text-base font-bold text-white mt-0.5" id="kpi-stocks">--</div>
+      </div>
+      <div class="glass rounded-xl p-2.5">
+        <div class="text-[11px] text-slate-400">大盘信号</div>
+        <div class="text-base font-bold text-amber-400 mt-0.5" id="kpi-market">--</div>
+      </div>
+      <div class="glass rounded-xl p-2.5">
+        <div class="text-[11px] text-slate-400">五大领域情报</div>
+        <div class="text-base font-bold text-emerald-400 mt-0.5" id="kpi-radar">--</div>
+      </div>
     </div>
 
-    <script>
-        async function saveAsImage() {
-            const button = event.target;
-            const originalText = button.textContent;
-            
-            try {
-                button.textContent = '生成中...';
-                button.disabled = true;
-                window.scrollTo(0, 0);
-                
-                await new Promise(resolve => setTimeout(resolve, 200));
-                
-                const buttons = document.querySelector('.save-buttons');
-                buttons.style.visibility = 'hidden';
-                
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-                const container = document.querySelector('.container');
-                
-                const canvas = await html2canvas(container, {
-                    backgroundColor: '#ffffff',
-                    scale: 1.5,
-                    useCORS: true,
-                    allowTaint: false,
-                    imageTimeout: 10000,
-                    removeContainer: false,
-                    foreignObjectRendering: false,
-                    logging: false,
-                    width: container.offsetWidth,
-                    height: container.offsetHeight,
-                    x: 0,
-                    y: 0,
-                    scrollX: 0,
-                    scrollY: 0,
-                    windowWidth: window.innerWidth,
-                    windowHeight: window.innerHeight
-                });
-                
-                buttons.style.visibility = 'visible';
-                
-                const link = document.createElement('a');
-                const now = new Date();
-                const filename = `TrendRadar_热点新闻分析_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}.png`;
-                
-                link.download = filename;
-                link.href = canvas.toDataURL('image/png', 1.0);
-                
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                button.textContent = '保存成功!';
-                setTimeout(() => {
-                    button.textContent = originalText;
-                    button.disabled = false;
-                }, 2000);
-                
-            } catch (error) {
-                const buttons = document.querySelector('.save-buttons');
-                buttons.style.visibility = 'visible';
-                button.textContent = '保存失败';
-                setTimeout(() => {
-                    button.textContent = originalText;
-                    button.disabled = false;
-                }, 2000);
-            }
+    <!-- Search & Filter -->
+    <div id="stock-filter-bar" class="flex gap-1.5 overflow-x-auto no-scrollbar py-1"></div>
+
+    <!-- Main Content Container -->
+    <div id="view-stocks" class="space-y-2.5"></div>
+    <div id="view-radar" class="space-y-2.5 hidden"></div>
+    <div id="view-market" class="space-y-2.5 hidden"></div>
+  </main>
+
+  <!-- Bottom Tab Navigation (Mobile App Style) -->
+  <nav class="fixed bottom-0 inset-x-0 z-40 glass border-t border-slate-800/80 px-2 py-1.5">
+    <div class="max-w-md mx-auto grid grid-cols-3 gap-1">
+      <button onclick="switchTab('stocks')" id="tab-stocks" class="py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white">
+        11只标的与预判
+      </button>
+      <button onclick="switchTab('radar')" id="tab-radar" class="py-1.5 rounded-lg text-xs font-medium text-slate-400">
+        五大领域情报
+      </button>
+      <button onclick="switchTab('market')" id="tab-market" class="py-1.5 rounded-lg text-xs font-medium text-slate-400">
+        A股大盘复盘
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    const TOPIC = "trendradar-mac-511";
+    let parsedStocks = [];
+    let currentStockFilter = "ALL";
+
+    function switchTab(tab) {
+      ["stocks", "radar", "market"].forEach(t => {
+        document.getElementById("view-" + t).classList.toggle("hidden", t !== tab);
+        const btn = document.getElementById("tab-" + t);
+        if (t === tab) {
+          btn.className = "py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white";
+        } else {
+          btn.className = "py-1.5 rounded-lg text-xs font-medium text-slate-400";
         }
-        
-        async function saveAsMultipleImages() {
-            const button = event.target;
-            const originalText = button.textContent;
-            const container = document.querySelector('.container');
-            const scale = 1.5;
-            const maxHeight = 5000 / scale;
-            
-            try {
-                button.textContent = '分析中...';
-                button.disabled = true;
-                
-                const wordGroups = Array.from(container.querySelectorAll('.word-group'));
-                const header = container.querySelector('.header');
-                const footer = container.querySelector('.footer');
-                
-                const containerRect = container.getBoundingClientRect();
-                const elements = [];
-                
-                elements.push({
-                    type: 'header',
-                    element: header,
-                    top: 0,
-                    bottom: header.offsetHeight,
-                    height: header.offsetHeight
-                });
-                
-                wordGroups.forEach(group => {
-                    const groupRect = group.getBoundingClientRect();
-                    const wordHeader = group.querySelector('.word-header');
-                    if (wordHeader) {
-                        const headerRect = wordHeader.getBoundingClientRect();
-                        elements.push({
-                            type: 'word-header',
-                            top: groupRect.top - containerRect.top,
-                            bottom: headerRect.bottom - containerRect.top,
-                            height: headerRect.height
-                        });
-                    }
-                    
-                    group.querySelectorAll('.news-item').forEach(item => {
-                        const rect = item.getBoundingClientRect();
-                        elements.push({
-                            type: 'news-item',
-                            top: rect.top - containerRect.top,
-                            bottom: rect.bottom - containerRect.top,
-                            height: rect.height
-                        });
-                    });
-                });
-                
-                const footerRect = footer.getBoundingClientRect();
-                elements.push({
-                    type: 'footer',
-                    top: footerRect.top - containerRect.top,
-                    bottom: footerRect.bottom - containerRect.top,
-                    height: footer.offsetHeight
-                });
-                
-                const segments = [];
-                let currentSegment = { start: 0, end: 0, height: 0 };
-                let headerHeight = header.offsetHeight;
-                currentSegment.height = headerHeight;
-                
-                for (let i = 1; i < elements.length; i++) {
-                    const element = elements[i];
-                    const potentialHeight = element.bottom - currentSegment.start;
-                    
-                    if (potentialHeight > maxHeight && currentSegment.height > headerHeight) {
-                        currentSegment.end = elements[i - 1].bottom;
-                        segments.push(currentSegment);
-                        
-                        currentSegment = {
-                            start: currentSegment.end,
-                            end: 0,
-                            height: element.bottom - currentSegment.end
-                        };
-                    } else {
-                        currentSegment.height = potentialHeight;
-                        currentSegment.end = element.bottom;
-                    }
-                }
-                
-                if (currentSegment.height > 0) {
-                    currentSegment.end = container.offsetHeight;
-                    segments.push(currentSegment);
-                }
-                
-                button.textContent = `生成中 (0/${segments.length})...`;
-                
-                const buttons = document.querySelector('.save-buttons');
-                buttons.style.visibility = 'hidden';
-                
-                const images = [];
-                for (let i = 0; i < segments.length; i++) {
-                    const segment = segments[i];
-                    button.textContent = `生成中 (${i + 1}/${segments.length})...`;
-                    
-                    const tempContainer = document.createElement('div');
-                    tempContainer.style.cssText = `
-                        position: absolute;
-                        left: -9999px;
-                        top: 0;
-                        width: ${container.offsetWidth}px;
-                        background: white;
-                    `;
-                    
-                    const clonedContainer = container.cloneNode(true);
-                    const clonedButtons = clonedContainer.querySelector('.save-buttons');
-                    if (clonedButtons) {
-                        clonedButtons.style.display = 'none';
-                    }
-                    
-                    tempContainer.appendChild(clonedContainer);
-                    document.body.appendChild(tempContainer);
-                    
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    
-                    const canvas = await html2canvas(clonedContainer, {
-                        backgroundColor: '#ffffff',
-                        scale: scale,
-                        useCORS: true,
-                        allowTaint: false,
-                        imageTimeout: 10000,
-                        logging: false,
-                        width: container.offsetWidth,
-                        height: segment.end - segment.start,
-                        x: 0,
-                        y: segment.start,
-                        windowWidth: window.innerWidth,
-                        windowHeight: window.innerHeight
-                    });
-                    
-                    images.push(canvas.toDataURL('image/png', 1.0));
-                    document.body.removeChild(tempContainer);
-                }
-                
-                buttons.style.visibility = 'visible';
-                
-                const now = new Date();
-                const baseFilename = `TrendRadar_热点新闻分析_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-                
-                for (let i = 0; i < images.length; i++) {
-                    const link = document.createElement('a');
-                    link.download = `${baseFilename}_part${i + 1}.png`;
-                    link.href = images[i];
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                }
-                
-                button.textContent = `已保存 ${segments.length} 张图片!`;
-                setTimeout(() => {
-                    button.textContent = originalText;
-                    button.disabled = false;
-                }, 2000);
-                
-            } catch (error) {
-                console.error('分段保存失败:', error);
-                const buttons = document.querySelector('.save-buttons');
-                buttons.style.visibility = 'visible';
-                button.textContent = '保存失败';
-                setTimeout(() => {
-                    button.textContent = originalText;
-                    button.disabled = false;
-                }, 2000);
-            }
-        }
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            window.scrollTo(0, 0);
+      });
+      document.getElementById("stock-filter-bar").classList.toggle("hidden", tab !== "stocks");
+    }
+
+    function badgeColor(score) {
+      const s = parseInt(score || "50", 10);
+      if (s >= 60) return "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
+      if (s >= 48) return "bg-amber-500/20 text-amber-300 border-amber-500/30";
+      return "bg-rose-500/20 text-rose-300 border-rose-500/30";
+    }
+
+    function renderStocks() {
+      const container = document.getElementById("view-stocks");
+      const filterBar = document.getElementById("stock-filter-bar");
+      if (!parsedStocks.length) {
+        container.innerHTML = `<div class="glass rounded-xl p-6 text-center text-sm text-slate-400">暂未读取到股票分析数据</div>`;
+        return;
+      }
+
+      // Filter pills
+      let pillsHtml = `<button onclick="setStockFilter('ALL')" class="px-3 py-1 rounded-full text-xs whitespace-nowrap border ${currentStockFilter === 'ALL' ? 'bg-blue-600 text-white border-blue-500' : 'glass text-slate-300 border-slate-700'}">全部 (${parsedStocks.length})</button>`;
+      parsedStocks.forEach(s => {
+        const active = currentStockFilter === s.code;
+        pillsHtml += `<button onclick="setStockFilter('${s.code}')" class="px-3 py-1 rounded-full text-xs whitespace-nowrap border ${active ? 'bg-blue-600 text-white border-blue-500' : 'glass text-slate-300 border-slate-700'}">${s.name} · ${s.score}</button>`;
+      });
+      filterBar.innerHTML = pillsHtml;
+
+      const list = currentStockFilter === "ALL" ? parsedStocks : parsedStocks.filter(s => s.code === currentStockFilter);
+      container.innerHTML = list.map((s, idx) => `
+        <div class="glass rounded-xl p-3.5 space-y-2.5">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-base font-bold text-white">${s.name}</span>
+                <span class="text-xs font-mono text-slate-400">${s.code}</span>
+              </div>
+              <p class="text-xs text-slate-300 mt-1 leading-relaxed">${s.oneSentence || s.advice}</p>
+            </div>
+            <div class="text-right shrink-0">
+              <span class="inline-block px-2 py-0.5 rounded-md text-xs font-bold border ${badgeColor(s.score)}">
+                ${s.score}分 · ${s.advice}
+              </span>
+              <div class="text-xs text-slate-400 mt-1">${s.trend} ${s.price ? "· " + s.price : ""}</div>
+            </div>
+          </div>
+
+          ${(s.weekForecast || s.monthForecast) ? `
+          <div class="rounded-lg bg-blue-950/40 border border-blue-500/20 p-2.5 space-y-1.5 text-xs">
+            <div class="font-semibold text-blue-300">未来 1 周 / 1 个月走势前瞻预判</div>
+            ${s.weekForecast ? `<div class="text-slate-200"><span class="text-blue-400 font-medium">未来1周：</span>${s.weekForecast}</div>` : ""}
+            ${s.monthForecast ? `<div class="text-slate-200"><span class="text-indigo-400 font-medium">未来1月：</span>${s.monthForecast}</div>` : ""}
+          </div>` : ""}
+
+          ${(s.idealBuy || s.stopLoss || s.takeProfit) ? `
+          <div class="grid grid-cols-3 gap-1.5 text-[11px]">
+            <div class="rounded bg-slate-800/70 p-2">
+              <div class="text-slate-400">理想买点</div>
+              <div class="text-emerald-300 font-medium mt-0.5 truncate" title="${s.idealBuy}">${s.idealBuy || "--"}</div>
+            </div>
+            <div class="rounded bg-slate-800/70 p-2">
+              <div class="text-slate-400">严格止损</div>
+              <div class="text-rose-300 font-medium mt-0.5 truncate" title="${s.stopLoss}">${s.stopLoss || "--"}</div>
+            </div>
+            <div class="rounded bg-slate-800/70 p-2">
+              <div class="text-slate-400">目标止盈</div>
+              <div class="text-amber-300 font-medium mt-0.5 truncate" title="${s.takeProfit}">${s.takeProfit || "--"}</div>
+            </div>
+          </div>` : ""}
+
+          <details class="group pt-1 border-t border-slate-800">
+            <summary class="text-xs text-blue-400 cursor-pointer select-none flex items-center justify-between">
+              <span>展开完整行情、均线、空仓/持仓建议与检查清单</span>
+              <span class="group-open:rotate-180 transition">▼</span>
+            </summary>
+            <div class="md-body pt-2">${marked.parse(s.rawMarkdown)}</div>
+          </details>
+        </div>
+      `).join("");
+    }
+
+    function setStockFilter(code) {
+      currentStockFilter = code;
+      renderStocks();
+    }
+
+    async function loadData() {
+      const statusEl = document.getElementById("status-bar");
+      statusEl.textContent = "正在拉取 ntfy.sh/" + TOPIC + " 最新数据...";
+      try {
+        const res = await fetch(`https://ntfy.sh/${TOPIC}/json?poll=1`);
+        const text = await res.text();
+        const lines = text.trim().split("\n").filter(Boolean).map(l => JSON.parse(l)).filter(x => x.event === "message");
+
+        // 1. Reassemble Stock Dashboard chunks
+        const stockChunks = lines.filter(x => (x.title || "").includes("股票分析报告") && !(x.message || "").includes("# 📈 大盘复盘") && !(x.message || "").includes("五、消息催化"));
+        // Sort by batch index if present
+        stockChunks.sort((a, b) => {
+          const ma = (a.title || "").match(/\((\d+)\/(\d+)\)/);
+          const mb = (b.title || "").match(/\((\d+)\/(\d+)\)/);
+          if (ma && mb && ma[2] === mb[2]) return parseInt(ma[1]) - parseInt(mb[1]);
+          return a.time - b.time;
         });
-    </script>
+        const fullStockMd = stockChunks.map(x => x.message).join("\n");
+
+        // Extract summary scores
+        const scoreMap = {};
+        const summaryRegex = /\*\*([^*]+?)\(([^)]+)\)\*\*:\s*([^|]+)\|\s*评分\s*(\d+)\s*\|\s*([^\n]+)/g;
+        let sm;
+        while ((sm = summaryRegex.exec(fullStockMd)) !== null) {
+          scoreMap[sm[2].trim()] = {
+            name: sm[1].trim(),
+            code: sm[2].trim(),
+            advice: sm[3].trim(),
+            score: sm[4].trim(),
+            trend: sm[5].trim()
+          };
+        }
+
+        // Split by stock sections (`## `)
+        const sections = fullStockMd.split(/\n(?=##\s+[🟢🟡🔴⚪])/);
+        parsedStocks = [];
+        sections.forEach(sec => {
+          const hm = sec.match(/^##\s+[🟢🟡🔴⚪]\s+(.+?)\s*\(([^)]+)\)/);
+          if (!hm) return;
+          const name = hm[1].trim();
+          const code = hm[2].trim();
+          const meta = scoreMap[code] || { name, code, advice: "观望", score: "50", trend: "震荡" };
+          const oneM = sec.match(/\*\*一句话决策\*\*:\s*([^\n]+)/);
+          const wkM = sec.match(/\*\*📅 未来 1 周推演\*\*：([^\n]+)/);
+          const moM = sec.match(/\*\*📆 未来 1 个月中线预判\*\*：([^\n]+)/);
+          const buyM = sec.match(/\|\s*🎯 理想买入点\s*\|\s*([^|]+)\|/);
+          const stopM = sec.match(/\|\s*🛑 止损位\s*\|\s*([^|]+)\|/);
+          const tpM = sec.match(/\|\s*🎊 目标位\s*\|\s*([^|]+)\|/);
+          const priceM = sec.match(/\|\s*当前价\s*\|\s*([0-9.]+)\s*\|/);
+
+          parsedStocks.push({
+            ...meta,
+            oneSentence: oneM ? oneM[1].trim() : "",
+            weekForecast: wkM ? wkM[1].trim() : "",
+            monthForecast: moM ? moM[1].trim() : "",
+            idealBuy: buyM ? buyM[1].trim() : "",
+            stopLoss: stopM ? stopM[1].trim() : "",
+            takeProfit: tpM ? tpM[1].trim() : "",
+            price: priceM ? priceM[1].trim() : "",
+            rawMarkdown: sec
+          });
+        });
+
+        document.getElementById("kpi-stocks").textContent = parsedStocks.length + " 只已就绪";
+        renderStocks();
+
+        // 2. Reassemble Market Review
+        const marketChunks = lines.filter(x => (x.message || "").includes("大盘复盘") || (x.message || "").includes("六、明日交易计划"));
+        const fullMarketMd = marketChunks.map(x => x.message).join("\n");
+        const sigM = fullMarketMd.match(/盘面信号\*\*：([^\n]+)/);
+        document.getElementById("kpi-market").textContent = sigM ? sigM[1].trim() : "43/100 防守";
+        document.getElementById("view-market").innerHTML = `<div class="glass rounded-xl p-4 md-body">${marked.parse(fullMarketMd || "暂无大盘复盘数据")}</div>`;
+
+        // 3. Latest TrendRadar 5-domain AI report
+        const radarMsgs = lines.filter(x => (x.message || "").includes("AI 热点分析"));
+        const latestRadar = radarMsgs.length ? radarMsgs[radarMsgs.length - 1] : null;
+        if (latestRadar) {
+          document.getElementById("kpi-radar").textContent = "5大领域已更新";
+          const formattedRadar = latestRadar.message
+            .replace(/\*\*核心热点态势\*\*/g, "## 🤖 科技与 AI 最新成果")
+            .replace(/\*\*舆论风向争议\*\*/g, "## 💰 货币、宏观与金融期货")
+            .replace(/\*\*异动与弱信号\*\*/g, "## 🎮 游戏圈与 App Store / Play Store 动态")
+            .replace(/\*\*RSS 深度洞察\*\*/g, "## 🌍 国际政治与外媒视野")
+            .replace(/\*\*研判策略建议\*\*/g, "## 🔥 大众舆情热点与选题灵感");
+          document.getElementById("view-radar").innerHTML = `<div class="glass rounded-xl p-4 md-body">${marked.parse(formattedRadar)}</div>`;
+        }
+
+        const lastTime = lines.length ? new Date(lines[lines.length - 1].time * 1000).toLocaleString("zh-CN") : "--";
+        statusEl.textContent = `已实时同步 ntfy.sh/${TOPIC} · 最新消息: ${lastTime}`;
+      } catch (err) {
+        statusEl.textContent = "同步失败: " + err.message;
+      }
+    }
+
+    loadData();
+  </script>
 </body>
 </html>
