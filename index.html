@@ -2,843 +2,659 @@
 <html lang="zh-CN" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>511 · 量化与全域情报终端</title>
+  <meta name="theme-color" content="#000000" />
+  <title>511 · 量化决策终端</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Geist', '-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
-            mono: ['Geist Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
-          },
-          colors: {
-            surface: {
-              0: 'var(--bg-0)',
-              1: 'var(--bg-1)',
-              2: 'var(--bg-2)',
-              3: 'var(--bg-3)',
-              4: 'var(--bg-4)',
-            },
-            ink: {
-              1: 'var(--ink-1)',
-              2: 'var(--ink-2)',
-              3: 'var(--ink-3)',
-            },
-            line: 'var(--line)',
-          }
-        }
-      }
+      theme: { extend: {
+        fontFamily: {
+          sans: ['Geist', '-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+          mono: ['Geist Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        },
+        colors: {
+          s0: 'var(--bg-0)', s1: 'var(--bg-1)', s2: 'var(--bg-2)', s3: 'var(--bg-3)', s4: 'var(--bg-4)',
+          i1: 'var(--ink-1)', i2: 'var(--ink-2)', i3: 'var(--ink-3)',
+        },
+      } }
     }
   </script>
   <style>
-    /* Redesign Skill Approved Surface Palette */
     :root {
-      --bg-0: #F7F7F5;
-      --bg-1: #FFFFFF;
-      --bg-2: #F0EFEA;
-      --bg-3: #E6E4DD;
-      --bg-4: #D8D5CB;
-      --ink-1: #111111;
-      --ink-2: #555555;
-      --ink-3: #888888;
-      --line: rgba(0, 0, 0, 0.08);
+      --bg-0:#F5F5F2; --bg-1:#FFFFFF; --bg-2:#F0EFEA; --bg-3:#E6E4DD; --bg-4:#D3D0C5;
+      --ink-1:#111111; --ink-2:#575757; --ink-3:#8C8C8C; --line:rgba(0,0,0,.09);
+      --up:#E5484D; --down:#16A870;
+      --a-buy:#3B82F6; --a-hold:#14B8A6; --a-watch:#9CA3AF; --a-reduce:#F59E0B;
+      --ok:#14B8A6; --wait:#F59E0B; --weak:#D97706; --skip:#8C8C8C;
+      --ease: cubic-bezier(.22,1,.36,1);
     }
     .dark {
-      --bg-0: #000000;
-      --bg-1: #181818;
-      --bg-2: #1F1F1F;
-      --bg-3: #272727;
-      --bg-4: #313131;
-      --ink-1: #F5F5F5;
-      --ink-2: #9B9B9B;
-      --ink-3: #666666;
-      --line: rgba(255, 255, 255, 0.08);
+      --bg-0:#000000; --bg-1:#181818; --bg-2:#1F1F1F; --bg-3:#272727; --bg-4:#313131;
+      --ink-1:#F5F5F5; --ink-2:#A0A0A0; --ink-3:#6B6B6B; --line:rgba(255,255,255,.08);
+      --up:#F0616A; --down:#2FC98E;
+      --a-buy:#60A5FA; --a-hold:#2DD4BF; --a-watch:#8A8F98; --a-reduce:#FBBF24;
+      --ok:#2DD4BF; --wait:#FBBF24; --weak:#F59E0B; --skip:#6B6B6B;
     }
-
     * { -webkit-tap-highlight-color: transparent; }
-    button:focus, button:focus-visible { outline: none; box-shadow: none; }
-    html { scroll-behavior: smooth; }
-    body {
-      background-color: var(--bg-0);
-      color: var(--ink-1);
-      font-variant-numeric: tabular-nums;
-      overflow-x: hidden;
-    }
+    html,body { background: var(--bg-0); color: var(--ink-1); font-family: Geist, -apple-system, 'PingFang SC', sans-serif; }
+    button { cursor: pointer; } button:focus,button:focus-visible,input:focus,select:focus { outline: none; }
+    .mono { font-family: 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .num  { font-family: 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+    .up { color: var(--up); } .down { color: var(--down); } .flat { color: var(--ink-2); }
+    .card { background: var(--bg-1); border: 1px solid var(--line); border-radius: 16px; }
+    .tray { background: var(--bg-2); border-radius: 12px; }
+    .lbl { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+    .tap { transition: transform .35s var(--ease), background .25s var(--ease), color .25s var(--ease), opacity .25s; }
+    .tap:active { transform: scale(.97); }
 
-    /* Concentric Radius Rule: Outer 16px, Padding 8px => Inner 8px */
-    .outer-card {
-      background-color: var(--bg-1);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-    }
-    .inner-box {
-      background-color: var(--bg-2);
-      border-radius: 8px;
-    }
+    /* chips */
+    .chip { display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 8px; border-radius:7px; font-size:11.5px; font-weight:600; white-space:nowrap;
+            background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
+    .chip i { font-size: 12px; }
+    .dot { width:6px; height:6px; border-radius:99px; background: var(--c); display:inline-block; }
 
-    /* Custom Damped Motion Curve from Redesign Skill */
-    .ease-out-expo {
-      transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    .tap-scale:active {
-      transform: scale(0.985);
-    }
+    /* nav / filter pills */
+    .seg { display:flex; gap:4px; padding:4px; background: var(--bg-1); border:1px solid var(--line); border-radius:14px; }
+    .seg button { height:34px; padding:0 12px; border-radius:10px; font-size:13px; font-weight:500; color: var(--ink-2); white-space:nowrap; display:inline-flex; align-items:center; gap:6px; }
+    .seg button.on { background: var(--bg-3); color: var(--ink-1); }
+    .seg button .n { font-family:'Geist Mono',monospace; font-size:11px; color: var(--ink-3); }
+    .seg button.on .n { color: var(--ink-2); }
+    .seg button.zero { opacity:.45; }
+    .scroll-x { overflow-x:auto; scrollbar-width:none; } .scroll-x::-webkit-scrollbar { display:none; }
 
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    /* table */
+    table.grid { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
+    table.grid th { position:sticky; top:0; z-index:2; background: var(--bg-1); text-align:left; padding:10px 12px; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color: var(--ink-3); font-weight:500; border-bottom:1px solid var(--line); white-space:nowrap; user-select:none; }
+    table.grid th.sort { cursor:pointer; } table.grid th.sort:hover { color: var(--ink-1); }
+    table.grid th.r, table.grid td.r { text-align:right; }
+    table.grid td { padding:12px; border-bottom:1px solid var(--line); vertical-align:middle; white-space:nowrap; }
+    table.grid tbody tr { cursor:pointer; transition: background .2s var(--ease); }
+    table.grid tbody tr:hover td { background: var(--bg-2); }
+    table.grid tbody tr:last-child td { border-bottom:none; }
 
-    /* Clean Prose for Deep Dive Sheet */
-    .sheet-prose h1, .sheet-prose h2 {
-      font-size: 16px;
-      line-height: 24px;
-      font-weight: 600;
-      color: var(--ink-1);
-      margin-top: 20px;
-      margin-bottom: 8px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--line);
-    }
-    .sheet-prose h3, .sheet-prose h4 {
-      font-size: 14px;
-      line-height: 20px;
-      font-weight: 600;
-      color: var(--ink-1);
-      margin-top: 16px;
-      margin-bottom: 6px;
-    }
-    .sheet-prose p, .sheet-prose li {
-      font-size: 14px;
-      line-height: 22px;
-      color: var(--ink-2);
-    }
-    .sheet-prose strong { color: var(--ink-1); font-weight: 600; }
-    .sheet-prose ul { list-style: disc; padding-left: 18px; margin: 6px 0; }
-    .sheet-prose blockquote {
-      background-color: var(--bg-2);
-      border-left: 3px solid var(--ink-1);
-      padding: 10px 12px;
-      border-radius: 0 8px 8px 0;
-      margin: 10px 0;
-    }
-    .sheet-prose table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      margin: 10px 0;
-      display: block;
-      overflow-x: auto;
-      font-variant-numeric: tabular-nums;
-    }
-    .sheet-prose th, .sheet-prose td {
-      border: 1px solid var(--line);
-      padding: 8px 10px;
-      text-align: left;
-      white-space: nowrap;
-    }
-    .sheet-prose th {
-      background-color: var(--bg-2);
-      color: var(--ink-1);
-      font-weight: 600;
-    }
+    /* gauges */
+    .bar { height:6px; border-radius:99px; background: var(--bg-3); position:relative; overflow:hidden; }
+    .bar > span { position:absolute; inset:0 auto 0 0; border-radius:99px; background: var(--ink-1); }
+    .range { height:6px; border-radius:99px; background: linear-gradient(90deg, color-mix(in srgb,var(--down) 35%,var(--bg-3)), var(--bg-3) 50%, color-mix(in srgb,var(--up) 35%,var(--bg-3))); position:relative; }
+    .range > b { position:absolute; top:-3px; width:3px; height:12px; border-radius:2px; background: var(--ink-1); transform: translateX(-50%); box-shadow:0 0 0 2px var(--bg-1); }
+    .stack { display:flex; height:8px; border-radius:99px; overflow:hidden; gap:2px; }
+    .stack > span { min-width:3px; border-radius:2px; transition: flex .6s var(--ease); }
+
+    /* ruler */
+    .ruler { position:relative; height:44px; margin:6px 4px 0; }
+    .ruler .track { position:absolute; left:0; right:0; top:20px; height:8px; border-radius:99px; background: var(--bg-3); overflow:hidden; }
+    .ruler .risk { position:absolute; top:0; bottom:0; background: color-mix(in srgb, var(--a-reduce) 55%, transparent); }
+    .ruler .rew  { position:absolute; top:0; bottom:0; background: color-mix(in srgb, var(--ok) 55%, transparent); }
+    .ruler .tick { position:absolute; top:16px; width:2px; height:16px; background: var(--ink-2); transform:translateX(-50%); border-radius:1px; }
+    .ruler .tick.res { background: none; border-left:2px dashed var(--ink-1); width:0; }
+    .ruler .tk-l { position:absolute; top:34px; transform:translateX(-50%); font:600 10px 'Geist Mono',monospace; color: var(--ink-2); }
+    .ruler .now { position:absolute; top:0; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; font:600 10px 'Geist Mono',monospace; color: var(--ink-1); }
+    .ruler .now::after { content:''; width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid var(--ink-1); }
+
+    /* drawer */
+    #drawer { position:fixed; inset:0; z-index:60; pointer-events:none; }
+    #drawer .scrim { position:absolute; inset:0; background:rgba(0,0,0,.55); opacity:0; transition:opacity .4s var(--ease); backdrop-filter: blur(2px); }
+    #drawer .panel { position:absolute; background: var(--bg-0); border:1px solid var(--line); display:flex; flex-direction:column; transition: transform .5s var(--ease); }
+    @media (min-width:768px) { #drawer .panel { top:0; right:0; bottom:0; width:520px; transform:translateX(104%); border-radius:20px 0 0 20px; } }
+    @media (max-width:767px)  { #drawer .panel { left:0; right:0; bottom:0; height:90vh; transform:translateY(104%); border-radius:22px 22px 0 0; } }
+    #drawer.open { pointer-events:auto; } #drawer.open .scrim { opacity:1; } #drawer.open .panel { transform:none; }
+    .grab { width:38px; height:4px; border-radius:99px; background: var(--bg-4); margin:8px auto 0; }
+    @media (min-width:768px) { .grab { display:none; } }
+
+    /* prose */
+    .prose-md { font-size:13.5px; line-height:1.7; color: var(--ink-2); }
+    .prose-md h1,.prose-md h2,.prose-md h3,.prose-md h4 { color: var(--ink-1); font-weight:600; margin:1.1em 0 .45em; line-height:1.35; }
+    .prose-md h1 { font-size:17px; } .prose-md h2 { font-size:15.5px; } .prose-md h3 { font-size:14px; } .prose-md h4 { font-size:13.5px; }
+    .prose-md p { margin:.5em 0; } .prose-md strong { color: var(--ink-1); font-weight:600; }
+    .prose-md ul { list-style:disc; padding-left:1.25em; } .prose-md ol { list-style:decimal; padding-left:1.25em; }
+    .prose-md li { margin:.2em 0; }
+    .prose-md blockquote { border-left:2px solid var(--bg-4); padding-left:12px; color: var(--ink-2); margin:.7em 0; }
+    .prose-md table { display:block; overflow-x:auto; width:100%; border-collapse:collapse; margin:.8em 0; font-size:12px; }
+    .prose-md th,.prose-md td { border:1px solid var(--line); padding:6px 10px; white-space:nowrap; text-align:left; }
+    .prose-md th { background: var(--bg-2); color: var(--ink-1); font-weight:600; }
+    .prose-md code { background: var(--bg-3); padding:1px 5px; border-radius:5px; font-family:'Geist Mono',monospace; font-size:12px; }
+    .prose-md hr { border:none; border-top:1px solid var(--line); margin:1em 0; }
+
+    .fade-in { animation: fi .5s var(--ease) both; }
+    @keyframes fi { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+    .skeleton { background: linear-gradient(90deg, var(--bg-2), var(--bg-3), var(--bg-2)); background-size:200% 100%; animation: sk 1.4s infinite; border-radius:10px; }
+    @keyframes sk { to { background-position:-200% 0; } }
+    input.search { background: var(--bg-1); border:1px solid var(--line); border-radius:12px; height:42px; padding:0 12px 0 36px; font-size:13px; color: var(--ink-1); width:100%; }
+    select.sel { background: var(--bg-1); border:1px solid var(--line); border-radius:12px; height:42px; padding:0 10px; font-size:13px; color: var(--ink-1); }
+    .safe-b { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
   </style>
 </head>
-<body class="min-h-[100dvh] pb-28">
+<body class="min-h-screen antialiased">
 
-  <!-- Slim Top Bar (48px height, zero clutter) -->
-  <header class="sticky top-0 z-30 bg-surface-0/85 backdrop-blur-md border-b border-[var(--line)]">
-    <div class="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <span class="w-2 h-2 rounded-full bg-emerald-500" id="live-dot"></span>
-        <span class="text-sm font-semibold tracking-tight">511 决策终端</span>
-        <span class="text-xs font-mono text-ink-3" id="sync-time">同步中...</span>
+  <!-- Header -->
+  <header class="sticky top-0 z-40 border-b" style="background:color-mix(in srgb,var(--bg-0) 86%,transparent);backdrop-filter:blur(14px);border-color:var(--line)">
+    <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-8 h-8 rounded-[10px] flex items-center justify-center" style="background:var(--ink-1);color:var(--bg-0)"><i class="ph-bold ph-chart-line-up text-[17px]"></i></div>
+        <div class="min-w-0 leading-tight">
+          <div class="text-[14px] font-semibold tracking-tight truncate">511 量化决策终端</div>
+          <div class="flex items-center gap-1.5 text-[11px] text-i3"><span class="dot" id="live-dot" style="--c:var(--ink-3)"></span><span id="sync-time" class="mono truncate">连接中…</span></div>
+        </div>
       </div>
-
-      <div class="flex items-center gap-1">
-        <!-- View Mode Toggle: Compact List vs Forecast Cards -->
-        <button onclick="toggleDensity()" id="density-btn" class="h-9 px-2.5 rounded-lg text-xs font-medium text-ink-2 hover:text-ink-1 hover:bg-surface-2 flex items-center gap-1.5 ease-out-expo duration-300 tap-scale" title="切换极简列表/展开模式">
-          <i class="ph ph-rows text-base" id="density-icon"></i>
-          <span id="density-label">极简模式</span>
-        </button>
-        <button onclick="toggleTheme()" class="h-9 w-9 rounded-lg text-ink-2 hover:text-ink-1 hover:bg-surface-2 flex items-center justify-center ease-out-expo duration-300 tap-scale" title="切换深浅色">
-          <i class="ph ph-contrast text-base"></i>
-        </button>
-        <button onclick="loadAllData()" class="h-9 w-9 rounded-lg text-ink-2 hover:text-ink-1 hover:bg-surface-2 flex items-center justify-center ease-out-expo duration-300 tap-scale" title="刷新最新数据">
-          <i class="ph ph-arrows-clockwise text-base" id="refresh-icon"></i>
-        </button>
+      <div class="flex items-center gap-1.5">
+        <button onclick="toggleTheme()" class="tap w-9 h-9 rounded-[11px] bg-s1 border flex items-center justify-center text-i2" style="border-color:var(--line)" aria-label="切换主题"><i class="ph ph-sun-dim text-[17px]" id="theme-icon"></i></button>
+        <button onclick="loadAll(true)" class="tap w-9 h-9 rounded-[11px] bg-s1 border flex items-center justify-center text-i2" style="border-color:var(--line)" aria-label="刷新"><i class="ph ph-arrows-clockwise text-[17px]" id="refresh-icon"></i></button>
       </div>
     </div>
   </header>
 
-  <main class="max-w-3xl mx-auto px-4 pt-3 space-y-4">
+  <main class="max-w-6xl mx-auto px-4 pt-4 pb-24">
+    <!-- top nav -->
+    <nav class="seg scroll-x mb-4 w-full md:w-fit" id="nav">
+      <button data-v="desk" class="on" onclick="setView('desk')"><i class="ph ph-squares-four"></i>决策看板</button>
+      <button data-v="market" onclick="setView('market')"><i class="ph ph-globe-hemisphere-east"></i>大盘复盘</button>
+      <button data-v="radar" onclick="setView('radar')"><i class="ph ph-radar"></i>情报雷达</button>
+    </nav>
 
-    <!-- Single Compact Weather Banner (Replaces 4 bulky KPI cards) -->
-    <div onclick="switchTab('market')" class="outer-card p-3 flex items-center justify-between cursor-pointer hover:bg-surface-2 ease-out-expo duration-300 tap-scale">
-      <div class="flex items-center gap-3 min-w-0">
-        <div class="inner-box px-2.5 py-1.5 text-center shrink-0">
-          <div class="text-[10px] text-ink-2 leading-none">大盘温度</div>
-          <div class="text-sm font-bold font-mono text-amber-500 mt-1 leading-none" id="banner-score">43°</div>
-        </div>
-        <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-ink-1" id="banner-status">防守姿态 · 建议总仓 &lt;30%</span>
-            <span class="text-xs font-mono text-ink-3" id="banner-counts">2持有 · 9观望</span>
+    <!-- DESK -->
+    <section id="view-desk" class="space-y-4">
+      <div id="kpis" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
+      <div id="dist" class="card p-4"></div>
+
+      <div class="space-y-3">
+        <div class="seg scroll-x" id="advice-tabs"></div>
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-i3 text-[16px]"></i>
+            <input id="q" class="search" placeholder="搜索名称或代码" oninput="state.q=this.value.trim();renderDesk()" />
           </div>
-          <p class="text-xs text-ink-2 truncate mt-0.5" id="banner-desc">
-            上证50与十年国债抗跌护盘，科创50(-4.28%)领跌但RSI进入25.2超卖区
-          </p>
-        </div>
-      </div>
-      <i class="ph ph-caret-right text-sm text-ink-3 shrink-0 ml-2"></i>
-    </div>
-
-    <!-- ==================== TAB 1: WATCHLIST & FORECAST ==================== -->
-    <section id="panel-stocks" class="space-y-3">
-
-      <!-- One Unified Signal Filter Bar (Traffic Light Action Signals) -->
-      <div class="flex items-center justify-between gap-2">
-        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" id="signal-filter-bar">
-          <button onclick="setCat('ALL')" data-cat="ALL" class="cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-ink-1 text-surface-0 ease-out-expo duration-300 tap-scale whitespace-nowrap flex items-center gap-1.5">
-            <span>全部</span>
-            <span class="font-mono opacity-80" id="cnt-ALL">11</span>
-          </button>
-          <button onclick="setCat('BULL')" data-cat="BULL" class="cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-surface-1 text-ink-2 border border-[var(--line)] ease-out-expo duration-300 tap-scale whitespace-nowrap flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span>偏多/可持有</span>
-            <span class="font-mono opacity-75" id="cnt-BULL">3</span>
-          </button>
-          <button onclick="setCat('RANGE')" data-cat="RANGE" class="cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-surface-1 text-ink-2 border border-[var(--line)] ease-out-expo duration-300 tap-scale whitespace-nowrap flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-            <span>震荡观察</span>
-            <span class="font-mono opacity-75" id="cnt-RANGE">4</span>
-          </button>
-          <button onclick="setCat('BEAR')" data-cat="BEAR" class="cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-surface-1 text-ink-2 border border-[var(--line)] ease-out-expo duration-300 tap-scale whitespace-nowrap flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-            <span>空头防守/超卖</span>
-            <span class="font-mono opacity-75" id="cnt-BEAR">4</span>
-          </button>
+          <select id="type" class="sel" onchange="state.type=this.value;renderDesk()">
+            <option value="ALL">全部类型</option><option value="STOCK">个股</option><option value="ETF">ETF</option><option value="INDEX">指数</option>
+          </select>
+          <select id="sort" class="sel md:hidden" onchange="setSort(this.value)">
+            <option value="score">按评分</option><option value="chg">按涨跌</option><option value="rr">按盈亏比</option><option value="name">按名称</option>
+          </select>
         </div>
       </div>
 
-      <!-- Stock List Container -->
-      <div id="stock-list" class="space-y-2.5"></div>
+      <div id="list-desktop" class="card overflow-hidden hidden md:block"><div class="overflow-x-auto"><div id="table-wrap"></div></div></div>
+      <div id="list-mobile" class="md:hidden space-y-2"></div>
+      <p class="text-[11px] text-i3 leading-relaxed px-1">涨红跌绿。点位由代码按 ATR14 波动率计算（止损 = 入场 − 2×ATR，目标 = 1R/2R/3R），并按上方压力位封顶；仅作研究参考，不构成投资建议。</p>
     </section>
 
-    <!-- ==================== TAB 2: 5-DOMAIN RADAR ==================== -->
-    <section id="panel-radar" class="space-y-3 hidden">
-      <!-- Domain Sub-Filter -->
-      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" id="radar-pills"></div>
+    <!-- MARKET -->
+    <section id="view-market" class="hidden space-y-4"></section>
 
-      <!-- Clean Reading Feed -->
+    <!-- RADAR -->
+    <section id="view-radar" class="hidden space-y-4">
+      <div id="radar-pills" class="seg scroll-x"></div>
       <div id="radar-feed" class="space-y-3"></div>
     </section>
-
-    <!-- ==================== TAB 3: MARKET REVIEW ==================== -->
-    <section id="panel-market" class="space-y-3 hidden">
-      <div id="market-view" class="space-y-3"></div>
-    </section>
-
   </main>
 
-  <!-- Floating Glass Bottom Dock (Redesign Skill Recommendation: Floating off edge, thumb-zone friendly) -->
-  <nav class="fixed bottom-4 inset-x-0 z-40 px-4 pointer-events-none">
-    <div class="max-w-sm mx-auto bg-surface-2/90 backdrop-blur-xl border border-[var(--line)] rounded-2xl p-1.5 grid grid-cols-3 gap-1 pointer-events-auto shadow-2xl">
-      <button onclick="switchTab('stocks')" id="tab-stocks" class="h-10 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold bg-ink-1 text-surface-0 ease-out-expo duration-300 tap-scale">
-        <i class="ph-fill ph-chart-line-up text-sm"></i>
-        <span>自选与预判</span>
-      </button>
-      <button onclick="switchTab('radar')" id="tab-radar" class="h-10 rounded-xl flex items-center justify-center gap-1.5 text-xs font-medium text-ink-2 hover:text-ink-1 ease-out-expo duration-300 tap-scale">
-        <i class="ph ph-Newspaper text-sm"></i>
-        <span>五域情报</span>
-      </button>
-      <button onclick="switchTab('market')" id="tab-market" class="h-10 rounded-xl flex items-center justify-center gap-1.5 text-xs font-medium text-ink-2 hover:text-ink-1 ease-out-expo duration-300 tap-scale">
-        <i class="ph ph-compass text-sm"></i>
-        <span>大盘复盘</span>
-      </button>
-    </div>
-  </nav>
-
-  <!-- Slide-Up Detail Sheet (Concentric, Clean, Full Un-truncated Data) -->
-  <div id="sheet-backdrop" class="fixed inset-0 z-50 hidden">
-    <div onclick="closeSheet()" class="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity"></div>
-    <div class="fixed inset-x-0 bottom-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[520px] max-h-[88dvh] sm:max-h-[100dvh] bg-surface-1 border-t sm:border-t-0 sm:border-l border-[var(--line)] rounded-t-2xl sm:rounded-none flex flex-col z-10">
-      <div class="sm:hidden w-10 h-1 rounded-full bg-surface-4 mx-auto mt-2.5"></div>
-      <div class="px-4 py-3.5 border-b border-[var(--line)] flex items-center justify-between">
-        <div>
-          <div class="flex items-center gap-2">
-            <h3 class="text-base font-semibold text-ink-1" id="sheet-title">--</h3>
-            <span class="text-xs font-mono text-ink-3" id="sheet-code">--</span>
-          </div>
-          <p class="text-xs text-ink-2 mt-0.5" id="sheet-meta">--</p>
-        </div>
-        <button onclick="closeSheet()" class="h-9 w-9 rounded-xl bg-surface-2 text-ink-2 hover:text-ink-1 flex items-center justify-center tap-scale">
-          <i class="ph ph-x text-base"></i>
-        </button>
-      </div>
-      <div class="p-4 overflow-y-auto space-y-4" id="sheet-content"></div>
+  <!-- Drawer -->
+  <div id="drawer" aria-hidden="true">
+    <div class="scrim" onclick="closeDrawer()"></div>
+    <div class="panel">
+      <div class="grab"></div>
+      <div id="drawer-body" class="flex-1 overflow-y-auto overscroll-contain"></div>
     </div>
   </div>
 
-  <script>
-    const TOPIC = "trendradar-mac-511";
-    let currentTab = "stocks";
-    let currentCat = "ALL";
-    let isCompactMode = false; // false = Rich Forecast Card (no truncation), true = 1-line TradingView Compact Row
-    let activeRadarId = "ALL";
-    let stocksData = [];
-    let radarData = [];
+<script>
+  /* ================= Config & state ================= */
+  const TOPIC = "trendradar-mac-511";
+  const CACHE_KEY = "511-cache-v3";
+  const ADV = {
+    BUY:    { label: "买入 / 加仓", short: "买入", color: "var(--a-buy)",    icon: "ph-arrow-fat-line-up" },
+    HOLD:   { label: "持有",       short: "持有", color: "var(--a-hold)",   icon: "ph-hand-grabbing" },
+    WATCH:  { label: "观望",       short: "观望", color: "var(--a-watch)",  icon: "ph-eye" },
+    REDUCE: { label: "减仓 / 卖出", short: "减仓", color: "var(--a-reduce)", icon: "ph-arrow-fat-line-down" },
+  };
+  const ADV_ORDER = ["BUY", "HOLD", "WATCH", "REDUCE"];
+  const VERDICT = {
+    ok:   { t: "盈亏比合格", c: "var(--ok)",   i: "ph-check-circle" },
+    wait: { t: "等回踩",     c: "var(--wait)", i: "ph-hourglass-medium" },
+    weak: { t: "仅限小仓",   c: "var(--weak)", i: "ph-warning" },
+    skip: { t: "不值得出手", c: "var(--skip)", i: "ph-prohibit" },
+  };
+  const state = { view: "desk", adv: "ALL", type: "ALL", q: "", sort: "score", dir: -1, stocks: [], market: null, radar: [], asOf: 0, radarId: "ALL" };
 
-    const FALLBACK_STOCKS = [
-      {
-        code: "sh000016", name: "上证50", category: "INDEX", score: 68, advice: "持有", trend: "震荡",
-        price: "2756.62", changePct: "-0.21%", support: "2752.25", resistance: "2771.79",
-        ma5: "2755.41", ma10: "2752.25", ma20: "2771.79", bias: "+0.04%",
-        idealBuy: "2755.41 (MA5附近)", secondaryBuy: "2752.25 (MA10附近)", stopLoss: "2750 / 跌破MA20", takeProfit: "2771.79 (MA20压力位)",
-        suggestedPos: "3-4成",
-        oneSentence: "盘中窄幅震荡，均线弱势多头整理，建议持股观望或等待MA5附近低吸机会。",
-        noPosAdvice: "暂不急于盲目建仓，等待缩量回踩MA5支撑有效后再行小仓布局。",
-        hasPosAdvice: "短期均线维持震荡偏多，只要不有效跌破MA20中期支撑，可继续持股待涨。",
-        weekForecast: "预计维持 2720~2780 点区间震荡。关键触发条件在于能否放量突破 MA20 压力位，若失守 MA10 则需减仓防守。",
-        monthForecast: "宏观估值（动态PE 11.74）具备安全边际，受市场整体风险偏好收敛影响，大概率延续蓄势震荡行情。",
-        rawMarkdown: ""
-      },
-      {
-        code: "511260", name: "十年国债ETF", category: "ETF", score: 59, advice: "持有", trend: "看多",
-        price: "135.47", changePct: "+0.11%", support: "135.24", resistance: "135.70",
-        ma5: "135.52", ma10: "135.47", ma20: "135.24", bias: "-0.04%",
-        idealBuy: "135.52 (MA5附近)", secondaryBuy: "135.47 (MA10附近)", stopLoss: "135.00 (跌破MA20)", takeProfit: "135.80 (近期压力位)",
-        suggestedPos: "2-3成",
-        oneSentence: "MA5>MA10>MA20呈标准多头排列，避险情绪与宽松流动性支撑债市稳健上行。",
-        noPosAdvice: "盘中遇小幅回踩 MA5 或 MA10 支撑确认时分批吸纳。",
-        hasPosAdvice: "以 MA20 (135.24) 为风控线继续持有。",
-        weekForecast: "预计维持震荡偏多走势，运行区间 135.20~135.80 元，回踩 MA5 获支撑可择机加仓。",
-        monthForecast: "受益于债券市场的避险配置需求与央行流动性呵护，中线主方向保持震荡上行。",
-        rawMarkdown: ""
-      },
-      {
-        code: "600519", name: "贵州茅台", category: "STOCK", score: 58, advice: "观望", trend: "看多",
-        price: "1477.00", changePct: "+2.63%", support: "1398.58", resistance: "1477.77",
-        ma5: "1398.58", ma10: "1366.20", ma20: "1329.35", bias: "+5.61%",
-        idealBuy: "1398.58 (回踩MA5)", secondaryBuy: "1366.20 (回踩MA10)", stopLoss: "1329.35 (跌破MA20)", takeProfit: "1500.00 (整数关口)",
-        suggestedPos: "3成",
-        oneSentence: "强势多头排列但短线乖离率达+5.61%、RSI超买(81.4)，切勿追高，耐心等回踩MA5。",
-        noPosAdvice: "当前乖离率大于5%，严格执行不追高纪律，等待缩量回踩MA5（1398.58元）再低吸。",
-        hasPosAdvice: "处于强势多头中可继续持有，盘中冲高获利盘重可适当做T或设移动止盈。",
-        weekForecast: "预计维持震荡整理消化超买，运行区间 1380~1480 元。缩量回踩 MA5 视为低吸机会。",
-        monthForecast: "依托白酒龙头地位与合理估值（动态PE 22.47），中线保持震荡上行，有望冲击 1500 元。",
-        rawMarkdown: ""
-      },
-      {
-        code: "688981", name: "中芯国际", category: "STOCK", score: 51, advice: "观望", trend: "震荡",
-        price: "102.25", changePct: "+2.25%", support: "97.60", resistance: "103.04",
-        ma5: "100.41", ma10: "100.92", ma20: "103.04", bias: "+1.83%",
-        idealBuy: "100.41 (MA5附近)", secondaryBuy: "100.92 (MA10附近)", stopLoss: "97.60 (今日最低点)", takeProfit: "103.04 (MA20压力位)",
-        suggestedPos: "3成及以下",
-        oneSentence: "逆科创板翻红收复MA5/MA10，但中期均线MA20(103.04元)仍向下压制，保持观望。",
-        noPosAdvice: "等待放量站稳 MA20 (103.04元) 且均线修复后再考虑轻仓尝试。",
-        hasPosAdvice: "未破 97.60 元关键支撑前暂持股观察，反弹靠近 103 元注意控制仓位。",
-        weekForecast: "预计在 97.60~103.04 元区间震荡博弈；关键触发条件为能否放量突破 MA20 (103.04元)。",
-        monthForecast: "中线需观察均线斜率是否由空转多，操作上以箱体波段逢低轻仓追踪、严格止损为主。",
-        rawMarkdown: ""
-      },
-      {
-        code: "sh000688", name: "科创50", category: "INDEX", score: 43, advice: "观望", trend: "看空",
-        price: "1161.30", changePct: "-2.98%", support: "1132.33", resistance: "1206.02",
-        ma5: "1206.02", ma10: "1259.25", ma20: "1333.00", bias: "-3.71%",
-        idealBuy: "1132.33 (低点企稳确认)", secondaryBuy: "1206.02 (收复MA5后)", stopLoss: "1100.00 (整数关口)", takeProfit: "1259.25 (MA10压力位)",
-        suggestedPos: "0-1成(空仓)",
-        oneSentence: "处于强势空头排列中的缩量回踩，RSI=25.2超卖有反抽需求但趋势未转多，切勿盲目接飞刀。",
-        noPosAdvice: "保持空仓场外观察，等待 1132 点支撑确认或放量收复 MA5 (1206点) 后再议。",
-        hasPosAdvice: "无反转迹象切勿加仓，超跌反抽靠近 MA5 减仓防守，跌破 1132 点严格止损。",
-        weekForecast: "预计在 1130~1206 点区间弱势震荡或超卖修复；关键触发条件为能否放量收复 MA5 (1206点)。",
-        monthForecast: "动态 PE 86.44 偏高，中线受美股芯片股回调与高风偏资金流出压制，反转信号需等待突破 MA20 (1333点)。",
-        rawMarkdown: ""
+  /* ================= Helpers ================= */
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const md = s => DOMPurify.sanitize(marked.parse(s || ""));
+  const nums = s => (String(s ?? "").replace(/,/g, "").match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+  const num1 = s => { const a = nums(s); return a.length ? a[0] : NaN; };
+  const dec = ref => (ref < 20 ? 3 : 2);
+  const fp = (v, ref) => (Number.isFinite(v) ? v.toFixed(dec(ref ?? v)) : "—");
+  const pct = (v, d = 1) => (Number.isFinite(v) ? (v > 0 ? "+" : "") + v.toFixed(d) + "%" : "—");
+  const dirCls = v => (!Number.isFinite(v) || Math.abs(v) < 0.005 ? "flat" : v > 0 ? "up" : "down");
+  const fmtTs = ts => { if (!ts) return "--"; const d = new Date(ts * 1000); const p = n => String(n).padStart(2, "0"); return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+
+  function normAdvice(text, emoji) {
+    const t = String(text || "");
+    if (/减仓|卖出|清仓|离场|回避|止损离/.test(t)) return "REDUCE";
+    if (/买入|加仓|增持|建仓|低吸/.test(t)) return "BUY";
+    if (/持有|持仓|继续/.test(t)) return "HOLD";
+    if (/观望|等待|中性|观察/.test(t)) return "WATCH";
+    return ({ "🟢": "BUY", "🟡": "HOLD", "🔴": "REDUCE", "⚪": "WATCH" })[emoji] || "WATCH";
+  }
+  function typeOf(code, name) {
+    if (/^sh000\d{3}$/i.test(code) || /^sz399/i.test(code) || /^sh932/i.test(code)) return "INDEX";
+    const d = String(code).replace(/^[a-z]+/i, "");
+    if (/^(51|56|58|15)\d{4}$/.test(d) || /ETF/i.test(name)) return "ETF";
+    return "STOCK";
+  }
+
+  /* ---- markdown table utilities ---- */
+  const splitRow = l => l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+  function getTables(text) {
+    const lines = text.split("\n"), out = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (/^\s*\|/.test(lines[i]) && i + 1 < lines.length && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1])) {
+        const header = splitRow(lines[i]), rows = [];
+        i += 2;
+        while (i < lines.length && /^\s*\|/.test(lines[i])) { rows.push(splitRow(lines[i])); i++; }
+        out.push({ header, rows }); i--;
       }
-    ];
+    }
+    return out;
+  }
+  const kv = (tables, key) => {
+    for (const t of tables) for (const r of t.rows) if (r.length >= 2 && r[0].replace(/\*/g, "").includes(key) && !t.header.includes("距现价")) return r[1];
+    return "";
+  };
+  const colUnder = (tables, name) => {
+    for (const t of tables) { const k = t.header.findIndex(h => h.includes(name)); if (k >= 0 && t.rows[0] && Number.isFinite(num1(t.rows[0][k]))) return t.rows[0][k]; }
+    return "";
+  };
+  const grab = (text, re) => { const m = text.match(re); return m ? m[1].trim() : ""; };
+  const bullets = (text, headRe) => {
+    const m = text.match(headRe); if (!m) return [];
+    const out = []; const rest = text.slice(m.index + m[0].length).split("\n");
+    for (const l of rest) { const b = l.match(/^\s*[-•]\s+(.+)/); if (b) out.push(b[1].trim()); else if (out.length && !l.trim()) break; else if (out.length) break; }
+    return out;
+  };
 
-    const FALLBACK_RADAR = [
-      {
-        id: "ai", title: "科技与 AI 最新成果", source: "GitHub · HackerNews · HuggingFace · arXiv",
-        items: [
-          { tag: "开源Agent", text: "Vercel 开源桌面 AI 代理「agent-desktop」，大幅提升 Agent 在本地操作系统的 GUI 自动化操作能力。" },
-          { tag: "长效记忆", text: "开发者推出「claude-mem」项目，专门解决 Claude 大模型在跨会话工程中的长期上下文记忆持久化。" },
-          { tag: "AI制药", text: "DeepMind 衍生公司同构实验室预测：未来所有新药研发均将由 AI 辅助设计。" },
-          { tag: "极客风向", text: "「Duo Translator」上架 Safari；同时 Anthropic 因版权顾虑开始限制 AI 直接克隆现有商业游戏。" }
-        ]
-      },
-      {
-        id: "games", title: "游戏圈与 App Store / Play Store 动态", source: "PocketGamer · TouchArcade · 游戏陀螺 · Steam",
-        items: [
-          { tag: "新游定档", text: "乐元素二游「白银之城」预约破 1500 万定档 12 月；11 月手游市场迎来 27 款新游上线、18 款开启测试，重心转向内容型产品。" },
-          { tag: "榜单营收", text: "「宝可梦 TCG Pocket」全球累计营收达 2.33 亿美元；外媒披露 Roblox 超 80% 热门作品已接入 AI 工具。" },
-          { tag: "Steam霸榜", text: "国产动作大作「影之刃零 (Phantom Blade Zero)」销量突破 400 万份，Steam 同时在线超 70 万且已收回研发成本。" }
-        ]
-      },
-      {
-        id: "finance", title: "货币、宏观与金融期货", source: "金十数据 · 华尔街见闻 · 财联社 · 格隆汇",
-        items: [
-          { tag: "央行货币", text: "央行下调股票回购再贷款利率至 1%，开展超千亿互换便利，并上调外汇风险准备金率 2 个百分点稳定人民币汇率。" },
-          { tag: "海外宏观", text: "美股芯片股大幅下挫拖累大盘并传导至 A 股科创板，全球资金紧盯美国中期选举开票动态。" },
-          { tag: "商品期货", text: "现货白银下探「50美元/盎司」，纯苯期货封跌停板；国际油价大跌反而刺激避险资金回流黄金。" },
-          { tag: "A股资金", text: "科创50及通信ETF大幅回调，资金加速向十年国债ETF与上证50大盘蓝筹避险。" }
-        ]
-      },
-      {
-        id: "geo", title: "国际政治与外媒视野", source: "联合早报 · 参考消息 · 卫星通讯社",
-        items: [
-          { tag: "中东缓和", text: "中方劝和促谈，伊朗最高领袖授权谈判并提出重开霍尔木兹海峡方案（直接压制原油风险溢价）。" },
-          { tag: "俄乌会谈", text: "美、乌、俄三国计划下周在阿联酋举行三方会谈，寻求地缘冲突破局。" },
-          { tag: "美国选举", text: "美国中期选举提前投票破 5770 万张，最高法院驳回特朗普关于选票限制的请求。" }
-        ]
-      },
-      {
-        id: "social", title: "大众舆情热点与选题灵感", source: "微博 · 知乎 · B站 · 抖音 · 澎湃",
-        items: [
-          { tag: "游戏减法", text: "「影之刃零」操作简化与无恶意设计出圈，引发关于现代硬核游戏走向轻量化与玩家友好度的全网热议。" },
-          { tag: "消费争议", text: "零售巨头关于「消费入座」与拒外带的提议引爆餐饮商家服务边界与消费者权益大讨论。" },
-          { tag: "选题灵感", text: "可跟进「大厂硬核游戏为何集体走向降维与轻量化」深度分析，或开发「旧手机变防盗摄像头」等二手硬件再利用工具。" }
-        ]
+  /* ---- risk plan: parsed (ATR) or derived from legacy sniper rows ---- */
+  function verdictOf(rrNow, rrEntry) {
+    if (rrNow >= 2) return "ok";
+    if (rrEntry >= 2) return "wait";
+    if (Math.max(rrNow, rrEntry) >= 1.2) return "weak";
+    return "skip";
+  }
+  function buildPlan(sec, tables, price, support, resistance) {
+    const rt = tables.find(t => t.header.includes("距现价"));
+    if (rt) {
+      const row = k => (rt.rows.find(r => r[0].includes(k)) || [])[1];
+      const entry = num1(row("理想买入")), stop = num1(row("止损"));
+      const targets = ["目标1", "目标2", "目标3"].map(k => num1(row(k))).filter(Number.isFinite);
+      if (Number.isFinite(entry) && Number.isFinite(stop) && targets.length) {
+        const rrE = parseFloat(grab(sec, /盈亏比·回踩入场\*\*[：:]\s*1:([\d.]+)/)), rrN = parseFloat(grab(sec, /盈亏比·现价追入\*\*[：:]\s*1:([\d.]+)/));
+        const resM = sec.match(/上方压力\*\*[：:]\s*([\d.]+)（([^，）]+)/);
+        const vm = sec.match(/风控结论\*\*[：:]\s*(✅|⏳|⚠️|❌)\s*([^\n]+)/);
+        const atrM = sec.match(/ATR14=([\d.]+)，约占现价([\d.]+)%/);
+        const code = vm ? ({ "✅": "ok", "⏳": "wait", "⚠️": "weak", "❌": "skip" })[vm[1]] : verdictOf(rrN, rrE);
+        return { src: "ATR", entry, stop, targets, rrEntry: rrE, rrNow: rrN, resistance: resM ? +resM[1] : NaN, resLabel: resM ? resM[2] : "", verdict: code, verdictText: vm ? vm[2].trim() : VERDICT[code].t, atr: atrM ? +atrM[1] : NaN, atrPct: atrM ? +atrM[2] : NaN };
       }
-    ];
-
-    function toggleTheme() {
-      document.documentElement.classList.toggle("dark");
     }
+    // legacy (MA based) rows -> compute R:R on the client
+    const entry = num1(kv(tables, "理想买入点")), stop = num1(kv(tables, "止损位")), tp = num1(kv(tables, "目标位"));
+    if (![entry, stop, tp, price].every(Number.isFinite) || entry <= stop) return null;
+    const cap = Number.isFinite(resistance) && resistance > price ? Math.min(tp, resistance) : tp;
+    const rrE = (cap - entry) / (entry - stop), rrN = price > stop ? (cap - price) / (price - stop) : 0;
+    const code = verdictOf(rrN, rrE);
+    return { src: "MA", entry, stop, targets: [tp], rrEntry: rrE, rrNow: rrN, resistance: NaN, resLabel: "", verdict: code, verdictText: VERDICT[code].t, atr: NaN, atrPct: NaN };
+  }
 
-    function toggleDensity() {
-      isCompactMode = !isCompactMode;
-      document.getElementById("density-label").textContent = isCompactMode ? "展开模式" : "极简模式";
-      document.getElementById("density-icon").className = isCompactMode ? "ph ph-cards text-base" : "ph ph-rows text-base";
-      renderStocks();
-    }
+  /* ================= Parsing ntfy messages ================= */
+  const CARD_RE = /^📈\s*([🟢🟡🔴⚪🟠])?\s*(.+?)\s*\(([A-Za-z0-9.]+)\)(?:\s*\((\d+)\/(\d+)\))?\s*$/u;
 
-    function switchTab(tab) {
-      currentTab = tab;
-      ["stocks", "radar", "market"].forEach(t => {
-        document.getElementById("panel-" + t).classList.toggle("hidden", t !== tab);
-        const btn = document.getElementById("tab-" + t);
-        if (t === tab) {
-          btn.className = "h-10 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold bg-ink-1 text-surface-0 ease-out-expo duration-300 tap-scale";
-        } else {
-          btn.className = "h-10 rounded-xl flex items-center justify-center gap-1.5 text-xs font-medium text-ink-2 hover:text-ink-1 ease-out-expo duration-300 tap-scale";
-        }
+  function parseStocks(messages) {
+    // summary
+    const summary = {};
+    messages.filter(x => /汇总总览|决策仪表盘/.test(x.title || "") || /分析结果摘要/.test(x.message || "")).sort((a, b) => a.time - b.time).forEach(x => {
+      const re = /([🟢🟡🔴⚪🟠])\s*\*\*(.+?)\(([^()]+)\)\*\*[：:]\s*([^|\n]+?)\s*\|\s*评分\s*(\d+)\s*\|\s*([^\n]+)/gu;
+      let m; while ((m = re.exec(x.message || ""))) summary[m[3].trim().toUpperCase()] = { emoji: m[1], name: m[2].trim(), advice: m[4].trim(), score: +m[5], trend: m[6].trim() };
+    });
+    // cards grouped by code (latest run only)
+    const byCode = {};
+    messages.forEach(x => {
+      const m = (x.title || "").match(CARD_RE); if (!m || /大盘复盘|汇总/.test(m[2])) return;
+      const code = m[3].toUpperCase();
+      (byCode[code] = byCode[code] || []).push({ time: x.time, n: +(m[4] || 1), mm: +(m[5] || 1), emoji: m[1] || "", name: m[2].trim(), code: m[3], msg: x.message || "" });
+    });
+    const list = [];
+    Object.entries(byCode).forEach(([ukey, chunks]) => {
+      const latest = Math.max(...chunks.map(c => c.time));
+      const run = chunks.filter(c => c.time >= latest - 900);
+      const pick = {};
+      run.forEach(c => { if (!pick[c.n] || c.time > pick[c.n].time) pick[c.n] = c; });
+      const ordered = Object.values(pick).sort((a, b) => a.n - b.n);
+      const sec = ordered.map(c => c.msg).join("\n");
+      const head = ordered[0];
+      const sm = summary[ukey] || {};
+      const tables = getTables(sec);
+
+      const price = num1(colUnder(tables, "当前价") || kv(tables, "当前价"));
+      const chg = num1(colUnder(tables, "涨跌幅"));
+      const support = num1(kv(tables, "支撑位")), resistance = num1(kv(tables, "压力位"));
+      const conc = sec.match(/核心结论\s*\n+\*\*([🟢🟡🔴⚪🟠])?\s*([^*]+?)\*\*\s*\|\s*([^\n]+)/u);
+      const advText = conc ? conc[2] : (sm.advice || "");
+      const advice = normAdvice(advText, conc?.[1] || sm.emoji || head.emoji);
+      const trend = (conc ? conc[3].trim() : sm.trend) || "";
+      const plan = buildPlan(sec, tables, price, support, resistance);
+      const scoreRaw = Number.isFinite(sm.score) ? sm.score : parseInt(grab(sec, /趋势强度[:：]\s*(\d+)/));
+      list.push({
+        code: head.code, name: head.name === "待确认股票" && sm.name ? sm.name : head.name, type: typeOf(head.code, head.name),
+        advice, adviceText: advText.trim(), trend, score: Number.isFinite(scoreRaw) ? scoreRaw : null,
+        price, chg, support, resistance, plan,
+        ma5: num1(kv(tables, "MA5")), ma10: num1(kv(tables, "MA10")), ma20: num1(kv(tables, "MA20")),
+        bias: kv(tables, "乖离率"), trendStrength: parseInt(grab(sec, /趋势强度[:：]\s*(\d+)/)),
+        one: grab(sec, /一句话决策\*\*[:：]\s*([^\n]+)/),
+        week: grab(sec, /未来 ?1 ?周推演\*\*[:：]\s*([^\n]+)/).replace(/^未来1周（5个交易日）走势推演[:：]/, ""),
+        month: grab(sec, /未来 ?1 ?个月中线预判\*\*[:：]\s*([^\n]+)/).replace(/^未来1个月（20个交易日）中线趋势预判[:：]/, ""),
+        shape: grab(sec, /形态与趋势结构\*\*[:：]\s*([^\n]+)/),
+        flat: (tables.find(t => t.header.includes("持仓情况")) || { rows: [] }).rows.reduce((o, r) => { if (r[0].includes("空仓")) o.empty = r[1]; if (r[0].includes("持仓者")) o.held = r[1]; return o; }, {}),
+        position: grab(sec, /仓位建议\*\*[:：]\s*([^\n]+)/),
+        risks: bullets(sec, /风险警报\*\*[:：]?\s*\n/), boosts: bullets(sec, /利好催化\*\*[:：]?\s*\n/),
+        raw: sec, ts: latest,
       });
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    });
+    return list;
+  }
 
-    function classifySignal(item) {
-      const sc = parseInt(item.score || 50, 10);
-      const tr = item.trend || "";
-      const adv = item.advice || "";
-      if (sc >= 58 || adv.includes("买") || adv.includes("持有") || tr.includes("看多")) {
-        return "BULL";
-      }
-      if (tr.includes("看空") || adv.includes("卖") || adv.includes("减") || sc <= 45) {
-        return "BEAR";
-      }
-      return "RANGE";
-    }
+  function parseMarket(messages) {
+    const cards = messages.map(x => ({ x, m: (x.title || "").match(/^📈\s*(.*大盘复盘.*?)\s*\((\d+)\/(\d+)\)\s*$/) })).filter(o => o.m);
+    if (!cards.length) return null;
+    const latest = Math.max(...cards.map(o => o.x.time));
+    const run = cards.filter(o => o.x.time >= latest - 900);
+    const pick = {}; run.forEach(o => { const n = +o.m[2]; if (!pick[n] || o.x.time > pick[n].x.time) pick[n] = o; });
+    const text = Object.keys(pick).sort((a, b) => a - b).map(n => pick[n].x.message).join("\n");
+    const sig = text.match(/盘面信号\*\*[：:]\s*(\d+)\/100（([^）]+)）/);
+    const tb = getTables(text).find(t => t.header[0] === "指数");
+    const idx = tb ? tb.rows.map(r => ({ name: r[0], last: r[1], chg: num1(r[2]) })).filter(r => Number.isFinite(r.chg)) : [];
+    return {
+      text, score: sig ? +sig[1] : null, label: sig ? sig[2] : "", idx, ts: latest,
+      head: grab(text, /^>\s*(.+)$/m), advice: grab(text, /操作建议\*\*[：:]\s*([^\n]+)/), title: run[0].m[1],
+    };
+  }
 
-    function updateSignalCounts(list) {
-      const counts = { ALL: list.length, BULL: 0, RANGE: 0, BEAR: 0 };
-      list.forEach(item => {
-        const sig = classifySignal(item);
-        counts[sig] = (counts[sig] || 0) + 1;
+  const RADAR_DEFS = [
+    { key: "核心热点态势", id: "ai", title: "科技与 AI 最新成果", source: "GitHub · HackerNews · HuggingFace · arXiv" },
+    { key: "异动与弱信号", id: "games", title: "游戏与 App Store / Play Store", source: "PocketGamer · TouchArcade · 游戏陀螺 · Steam" },
+    { key: "舆论风向争议", id: "finance", title: "货币、宏观与期货", source: "金十 · 华尔街见闻 · 财联社 · 格隆汇" },
+    { key: "RSS 深度洞察", id: "geo", title: "国际政治与外媒", source: "联合早报 · 参考消息 · 卫星通讯社" },
+    { key: "研判策略建议", id: "social", title: "大众舆情与选题灵感", source: "微博 · 知乎 · B站 · 抖音 · 澎湃" },
+  ];
+  function parseRadar(messages) {
+    const ms = messages.filter(x => (x.message || "").includes("AI 热点分析")).sort((a, b) => a.time - b.time);
+    if (!ms.length) return null;
+    const last = ms[ms.length - 1], text = last.message;
+    const keys = RADAR_DEFS.map(d => d.key).join("|");
+    const out = [];
+    RADAR_DEFS.forEach(def => {
+      const m = text.match(new RegExp(`\\*\\*${def.key}\\*\\*([\\s\\S]*?)(?=\\n\\*\\*(?:${keys})\\*\\*|\\n> 更新时间|$)`));
+      if (!m || !m[1].trim()) return;
+      let tag = ""; const items = [];
+      m[1].trim().split("\n").map(l => l.trim()).filter(Boolean).forEach(line => {
+        const t = line.match(/^【([^】]+)】[：:]?(.*)$/);
+        if (t) { tag = t[1].trim(); if (t[2].trim()) items.push({ tag, text: t[2].trim() }); }
+        else { const c = line.replace(/^\d+\.\s*/, ""); if (c) items.push({ tag, text: c }); }
       });
-      ["ALL", "BULL", "RANGE", "BEAR"].forEach(k => {
-        const el = document.getElementById("cnt-" + k);
-        if (el) el.textContent = counts[k];
-      });
-      const bannerCounts = document.getElementById("banner-counts");
-      if (bannerCounts) {
-        bannerCounts.textContent = `${counts.BULL}偏多 · ${counts.RANGE}震荡 · ${counts.BEAR}防守`;
-      }
+      if (items.length) out.push({ ...def, items });
+    });
+    return out.length ? { domains: out, ts: last.time } : null;
+  }
+
+  /* ================= Data loading ================= */
+  function ingest(messages, persist = true) {
+    let touched = false;
+    const stocks = parseStocks(messages);
+    if (stocks.length) { state.stocks = stocks; state.asOf = Math.max(...stocks.map(s => s.ts)); touched = true; }
+    const mk = parseMarket(messages); if (mk) { state.market = mk; touched = true; }
+    const rd = parseRadar(messages); if (rd) { state.radar = rd.domains; state.radarTs = rd.ts; touched = true; }
+    if (touched && persist) {
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ stocks: state.stocks, market: state.market, radar: state.radar, radarTs: state.radarTs, asOf: state.asOf })); } catch (e) {}
+    }
+    return touched;
+  }
+  function loadCache() {
+    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c) { Object.assign(state, { stocks: c.stocks || [], market: c.market || null, radar: c.radar || [], radarTs: c.radarTs, asOf: c.asOf || 0 }); return true; } } catch (e) {}
+    return false;
+  }
+  async function loadAll(manual) {
+    const syncEl = document.getElementById("sync-time"), icon = document.getElementById("refresh-icon"), dot = document.getElementById("live-dot");
+    syncEl.textContent = "同步中…"; icon.classList.add("animate-spin");
+    let liveOk = false;
+    try {
+      const res = await fetch(`https://ntfy.sh/${TOPIC}/json?poll=1&since=all`, { cache: "no-store" });
+      const raw = await res.text();
+      const messages = raw.trim().split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(x => x && x.event === "message");
+      liveOk = ingest(messages);
+    } catch (e) { /* offline */ }
+    if (!state.stocks.length) {
+      try { const r = await fetch("./snapshot.json?" + Date.now()); if (r.ok) { ingest(await r.json()); state.fromSnapshot = true; } } catch (e) {}
+    }
+    icon.classList.remove("animate-spin");
+    dot.style.setProperty("--c", liveOk ? "var(--down)" : "var(--a-reduce)");
+    const stale = state.asOf && Date.now() / 1000 - state.asOf > 36 * 3600;
+    syncEl.textContent = state.asOf ? `分析数据 ${fmtTs(state.asOf)}${liveOk ? "" : " · 离线缓存"}${stale ? " · 已过期" : ""}` : (liveOk ? "暂无分析数据" : "无法连接 ntfy");
+    renderAll();
+  }
+
+  /* ================= Rendering ================= */
+  function rrHtml(plan) {
+    if (!plan) return `<span class="text-i3">—</span>`;
+    const c = v => (v >= 2 ? "var(--ok)" : v >= 1.2 ? "var(--wait)" : "var(--ink-3)");
+    const f = v => (Number.isFinite(v) ? v.toFixed(1) : "—");
+    return `<span class="num text-[12.5px]"><span style="color:${c(plan.rrEntry)}">${f(plan.rrEntry)}</span><span class="text-i3 mx-1">/</span><span style="color:${c(plan.rrNow)}">${f(plan.rrNow)}</span></span>`;
+  }
+  const advChip = k => `<span class="chip" style="--c:${ADV[k].color}"><i class="ph-bold ${ADV[k].icon}"></i>${ADV[k].short}</span>`;
+  const verChip = (p, compact) => !p ? "" : `<span class="chip" style="--c:${VERDICT[p.verdict].c}"><i class="ph-bold ${VERDICT[p.verdict].i}"></i>${compact ? VERDICT[p.verdict].t : esc(p.verdictText)}</span>`;
+  function rangeHtml(s, w = "w-28") {
+    if (![s.support, s.resistance, s.price].every(Number.isFinite) || s.resistance <= s.support) return `<span class="text-i3">—</span>`;
+    const p = Math.max(0, Math.min(100, ((s.price - s.support) / (s.resistance - s.support)) * 100));
+    return `<div class="${w}"><div class="range"><b style="left:${p}%"></b></div><div class="flex justify-between mt-1.5 num text-[10.5px] text-i3"><span>${fp(s.support, s.price)}</span><span>${fp(s.resistance, s.price)}</span></div></div>`;
+  }
+  const scoreHtml = s => s.score == null ? `<span class="text-i3">—</span>` : `<div class="flex items-center gap-2 justify-end"><span class="num text-[13px] font-semibold w-6 text-right">${s.score}</span><div class="bar w-14"><span style="width:${s.score}%"></span></div></div>`;
+
+  function visible() {
+    const q = state.q.toLowerCase();
+    return state.stocks.filter(s => (state.type === "ALL" || s.type === state.type) && (!q || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)));
+  }
+  function sortedList(list) {
+    const val = s => ({ score: s.score ?? -1, chg: Number.isFinite(s.chg) ? s.chg : -999, rr: s.plan ? Math.max(s.plan.rrNow, s.plan.rrEntry) : -1, name: s.name, adv: ADV_ORDER.indexOf(s.advice), price: s.price || 0 })[state.sort];
+    return [...list].sort((a, b) => { const x = val(a), y = val(b); const r = typeof x === "string" ? x.localeCompare(y, "zh") : x - y; return r * state.dir || (b.score ?? 0) - (a.score ?? 0); });
+  }
+  function setSort(k) { if (state.sort === k) state.dir *= -1; else { state.sort = k; state.dir = k === "name" ? 1 : -1; } renderDesk(); }
+
+  function renderKpis(list) {
+    const n = list.length, cnt = k => list.filter(s => s.advice === k).length;
+    const avg = n ? Math.round(list.filter(s => s.score != null).reduce((a, s) => a + s.score, 0) / Math.max(1, list.filter(s => s.score != null).length)) : null;
+    const ok = list.filter(s => s.plan?.verdict === "ok").length, wait = list.filter(s => s.plan?.verdict === "wait").length;
+    const mk = state.market;
+    const kpi = (label, value, sub, extra = "") => `<div class="card p-4 fade-in"><div class="lbl">${label}</div><div class="num text-[28px] leading-none font-semibold mt-2.5 ${extra}">${value}</div><div class="text-[12px] text-i2 mt-2 leading-snug">${sub}</div></div>`;
+    document.getElementById("kpis").innerHTML =
+      kpi("市场温度", mk && mk.score != null ? `${mk.score}<span class="text-[14px] text-i3 font-normal">/100</span>` : "—", mk ? esc(mk.label) : "等待大盘复盘") +
+      kpi("买入 / 加仓候选", `${cnt("BUY")}<span class="text-[14px] text-i3 font-normal"> / ${n}</span>`, `持有 ${cnt("HOLD")} · 观望 ${cnt("WATCH")} · 减仓 ${cnt("REDUCE")}`) +
+      kpi("盈亏比合格", `${ok}<span class="text-[14px] text-i3 font-normal"> / ${n}</span>`, wait ? `另有 ${wait} 只等回踩入场` : "现价即可入场的标的数") +
+      kpi("平均评分", avg == null ? "—" : avg, "全部标的综合技术评分");
+    const total = Math.max(1, n);
+    document.getElementById("dist").innerHTML = `
+      <div class="flex items-center justify-between mb-3"><div class="lbl">操作分布</div><div class="text-[11px] text-i3 mono">${n} 个标的</div></div>
+      <div class="stack">${ADV_ORDER.map(k => `<span style="flex:${cnt(k) || 0.0001};background:${ADV[k].color};opacity:${cnt(k) ? 1 : 0}"></span>`).join("")}</div>
+      <div class="flex flex-wrap gap-x-5 gap-y-1.5 mt-3">${ADV_ORDER.map(k => `<span class="text-[12px] text-i2 inline-flex items-center gap-1.5"><span class="dot" style="--c:${ADV[k].color}"></span>${ADV[k].label}<b class="num text-i1 font-semibold">${cnt(k)}</b><span class="text-i3 num">${Math.round(cnt(k) / total * 100)}%</span></span>`).join("")}</div>`;
+  }
+
+  function renderTabs(list) {
+    const cnt = k => list.filter(s => s.advice === k).length;
+    const tabs = [{ k: "ALL", label: "全部", n: list.length }, ...ADV_ORDER.map(k => ({ k, label: ADV[k].label, n: cnt(k), color: ADV[k].color }))];
+    document.getElementById("advice-tabs").innerHTML = tabs.map(t => `<button class="${state.adv === t.k ? "on" : ""} ${t.n === 0 && t.k !== "ALL" ? "zero" : ""}" onclick="state.adv='${t.k}';renderDesk()">${t.color ? `<span class="dot" style="--c:${t.color}"></span>` : ""}${t.label}<span class="n">${t.n}</span></button>`).join("");
+  }
+
+  function renderDesk() {
+    const base = visible();
+    renderKpis(state.stocks);
+    renderTabs(base);
+    document.getElementById("sort").value = state.sort;
+    const list = sortedList(state.adv === "ALL" ? base : base.filter(s => s.advice === state.adv));
+
+    if (!state.stocks.length) {
+      const empty = `<div class="card p-8 text-center text-i2 text-[13px] leading-relaxed"><i class="ph ph-hourglass text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">暂无分析数据</div><div class="mt-1">ntfy 仅保留约 12 小时消息。等待下一次分析推送，或点击右上角刷新。</div></div>`;
+      document.getElementById("table-wrap").innerHTML = empty; document.getElementById("list-mobile").innerHTML = empty; return;
+    }
+    if (!list.length) {
+      const empty = `<div class="p-8 text-center text-i2 text-[13px]"><i class="ph ph-funnel-simple text-[24px] text-i3"></i><div class="mt-2">该分类下暂无标的</div></div>`;
+      document.getElementById("table-wrap").innerHTML = empty; document.getElementById("list-mobile").innerHTML = `<div class="card">${empty}</div>`; return;
     }
 
-    function setCat(cat) {
-      currentCat = cat;
-      document.querySelectorAll(".cat-pill").forEach(btn => {
-        if (btn.dataset.cat === cat) {
-          btn.className = "cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-ink-1 text-surface-0 ease-out-expo duration-300 tap-scale whitespace-nowrap flex items-center gap-1.5";
-        } else {
-          btn.className = "cat-pill h-8 px-3 rounded-lg text-xs font-medium bg-surface-1 text-ink-2 border border-[var(--line)] ease-out-expo duration-300 tap-scale whitespace-nowrap flex items-center gap-1.5";
-        }
-      });
-      renderStocks();
+    const th = (k, label, cls = "") => `<th class="sort ${cls}" onclick="setSort('${k}')">${label}${state.sort === k ? `<i class="ph-bold ${state.dir < 0 ? "ph-caret-down" : "ph-caret-up"} ml-1"></i>` : ""}</th>`;
+    document.getElementById("table-wrap").innerHTML = `<table class="grid" style="min-width:940px"><thead><tr>
+      ${th("name", "标的")}${th("price", "现价", "r")}${th("chg", "涨跌", "r")}${th("score", "评分", "r")}${th("adv", "操作建议")}<th>趋势</th><th>支撑 — 压力</th>${th("rr", "盈亏比 回踩 / 追入", "r")}<th>风控结论</th></tr></thead><tbody>
+      ${list.map(s => `<tr onclick="openDrawer('${s.code}')">
+        <td><div class="font-semibold text-[13.5px]">${esc(s.name)}</div><div class="mono text-[11px] text-i3 mt-0.5">${esc(s.code)} · ${({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type]}</div></td>
+        <td class="r num font-medium">${fp(s.price)}</td>
+        <td class="r num font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</td>
+        <td class="r">${scoreHtml(s)}</td>
+        <td>${advChip(s.advice)}</td>
+        <td class="text-i2">${esc(s.trend || "—")}</td>
+        <td>${rangeHtml(s)}</td>
+        <td class="r">${rrHtml(s.plan)}</td>
+        <td>${verChip(s.plan, true) || `<span class="text-i3">—</span>`}</td></tr>`).join("")}</tbody></table>`;
+
+    document.getElementById("list-mobile").innerHTML = list.map(s => `
+      <button onclick="openDrawer('${s.code}')" class="tap card w-full text-left p-3.5 fade-in block">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0"><div class="font-semibold text-[15px] leading-tight">${esc(s.name)}</div><div class="mono text-[11px] text-i3 mt-1">${esc(s.code)} · ${({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type]}</div></div>
+          <div class="text-right shrink-0"><div class="num text-[16px] font-semibold leading-tight">${fp(s.price)}</div><div class="num text-[12px] mt-1 font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></div>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5 mt-3">${advChip(s.advice)}${verChip(s.plan, true)}${s.score != null ? `<span class="chip" style="--c:var(--ink-2)">评分 <span class="num">${s.score}</span></span>` : ""}</div>
+        <div class="grid grid-cols-2 gap-3 mt-3">
+          <div class="tray p-2.5"><div class="lbl mb-2">支撑 — 压力</div>${rangeHtml(s, "w-full")}</div>
+          <div class="tray p-2.5"><div class="lbl mb-1.5">盈亏比 回踩 / 追入</div><div class="text-[15px]">${rrHtml(s.plan)}</div></div>
+        </div>
+      </button>`).join("");
+  }
+
+  /* ---------- Drawer ---------- */
+  function rulerHtml(s) {
+    const p = s.plan; if (!p || !Number.isFinite(s.price)) return "";
+    const pts = [p.stop, p.entry, ...p.targets, s.price, p.resistance].filter(Number.isFinite);
+    let lo = Math.min(...pts), hi = Math.max(...pts); const pad = (hi - lo) * 0.06 || 1; lo -= pad; hi += pad;
+    const x = v => ((v - lo) / (hi - lo)) * 100;
+    const ticks = [["S", p.stop], ["E", p.entry], ...p.targets.map((t, i) => [p.targets.length > 1 ? String(i + 1) : "T", t])];
+    return `<div class="ruler">
+      <div class="track"><div class="risk" style="left:${x(p.stop)}%;width:${x(p.entry) - x(p.stop)}%"></div><div class="rew" style="left:${x(p.entry)}%;width:${x(Math.max(...p.targets)) - x(p.entry)}%"></div></div>
+      ${ticks.map(([l, v]) => `<div class="tick" style="left:${x(v)}%"></div><div class="tk-l" style="left:${x(v)}%">${l}</div>`).join("")}
+      ${Number.isFinite(p.resistance) ? `<div class="tick res" style="left:${x(p.resistance)}%"></div><div class="tk-l" style="left:${x(p.resistance)}%">R</div>` : ""}
+      <div class="now" style="left:${x(s.price)}%">现价</div></div>`;
+  }
+  function planTable(s) {
+    const p = s.plan; if (!p) return `<div class="text-[13px] text-i3">暂无点位数据</div>`;
+    const rows = [["🎯", "理想买入", p.entry, "var(--a-buy)"], ["🔵", "次优买入", NaN], ["🛑", "止损", p.stop, "var(--a-reduce)"], ...p.targets.map((t, i) => ["🎊", p.targets.length > 1 ? `目标 ${i + 1}（+${i + 1}R）` : "目标位", t, "var(--ok)"])];
+    if (Number.isFinite(p.resistance)) rows.push(["🧱", `上方压力（${esc(p.resLabel)}）`, p.resistance, "var(--ink-2)"]);
+    return `<div class="tray divide-y" style="--tw-divide-opacity:1">${rows.filter(r => Number.isFinite(r[2])).map(r => {
+      const d = (r[2] / s.price - 1) * 100;
+      return `<div class="flex items-center justify-between px-3.5 py-2.5" style="border-color:var(--line)"><div class="flex items-center gap-2 text-[13px]"><span class="dot" style="--c:${r[3]}"></span>${r[1]}</div><div class="flex items-baseline gap-3"><span class="num font-semibold text-[14px]">${fp(r[2], s.price)}</span><span class="num text-[12px] w-14 text-right ${dirCls(d)}">${pct(d)}</span></div></div>`;
+    }).join("")}</div>`;
+  }
+  function openDrawer(code) {
+    const s = state.stocks.find(x => x.code === code); if (!s) return;
+    const p = s.plan, sec = (t, body) => `<section class="px-5 pt-5"><div class="lbl mb-2.5">${t}</div>${body}</section>`;
+    document.getElementById("drawer-body").innerHTML = `
+      <div class="px-5 pt-4 pb-4 sticky top-0 z-10" style="background:var(--bg-0);border-bottom:1px solid var(--line)">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0"><div class="text-[19px] font-semibold tracking-tight">${esc(s.name)}</div><div class="mono text-[11.5px] text-i3 mt-1">${esc(s.code)} · ${({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type]}</div></div>
+          <button onclick="closeDrawer()" class="tap w-9 h-9 rounded-[11px] bg-s2 flex items-center justify-center text-i2 shrink-0" aria-label="关闭"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div class="flex items-end justify-between mt-4">
+          <div><div class="num text-[32px] leading-none font-semibold">${fp(s.price)}</div><div class="num text-[13px] mt-2 font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></div>
+          <div class="flex flex-col items-end gap-1.5">${advChip(s.advice)}${s.score != null ? `<div class="flex items-center gap-2"><span class="lbl">评分</span><span class="num font-semibold text-[15px]">${s.score}</span></div>` : ""}</div>
+        </div>
+      </div>
+      ${s.one ? sec("一句话决策", `<div class="tray p-3.5 text-[13.5px] leading-relaxed">${esc(s.one)}</div>`) : ""}
+      ${sec(`交易计划${p ? ` · <span class="normal-case tracking-normal" style="color:var(--ink-3)">${p.src === "ATR" ? "ATR 波动率法" : "均线法（旧）"}</span>` : ""}`, `
+        ${p ? `<div class="flex flex-wrap gap-2 mb-3">${verChip(p, false)}${Number.isFinite(p.atr) ? `<span class="chip" style="--c:var(--ink-2)">ATR14 ${fp(p.atr, s.price)}（${p.atrPct.toFixed(1)}%）</span>` : ""}</div>` : ""}
+        ${rulerHtml(s)}
+        <div class="mt-3">${planTable(s)}</div>
+        ${p ? `<div class="grid grid-cols-2 gap-2 mt-2.5">
+          <div class="tray p-3"><div class="lbl">盈亏比 · 回踩入场</div><div class="num text-[20px] font-semibold mt-1.5">1:${p.rrEntry.toFixed(2)}</div></div>
+          <div class="tray p-3"><div class="lbl">盈亏比 · 现价追入</div><div class="num text-[20px] font-semibold mt-1.5">1:${p.rrNow.toFixed(2)}</div></div></div>
+          <p class="text-[11.5px] text-i3 mt-2.5 leading-relaxed">盈亏比 &lt; 2 视为性价比不足；目标已按上方压力位封顶。S 止损 · E 入场 · 1/2/3 目标 · R 压力。</p>` : ""}`)}
+      ${(s.week || s.month) ? sec("走势前瞻", `<div class="space-y-2">
+        ${s.week ? `<div class="tray p-3.5"><div class="flex items-center gap-1.5 text-[12px] font-semibold mb-1.5"><i class="ph-bold ph-calendar-blank"></i>未来 1 周</div><div class="text-[13px] leading-relaxed text-i2">${esc(s.week)}</div></div>` : ""}
+        ${s.month ? `<div class="tray p-3.5"><div class="flex items-center gap-1.5 text-[12px] font-semibold mb-1.5"><i class="ph-bold ph-calendar-dots"></i>未来 1 个月</div><div class="text-[13px] leading-relaxed text-i2">${esc(s.month)}</div></div>` : ""}</div>`) : ""}
+      ${(s.flat.empty || s.flat.held) ? sec("操作建议", `<div class="space-y-2">
+        ${s.flat.empty ? `<div class="tray p-3.5"><div class="text-[12px] font-semibold mb-1">🆕 空仓者</div><div class="text-[13px] leading-relaxed text-i2">${esc(s.flat.empty)}</div></div>` : ""}
+        ${s.flat.held ? `<div class="tray p-3.5"><div class="text-[12px] font-semibold mb-1">💼 持仓者</div><div class="text-[13px] leading-relaxed text-i2">${esc(s.flat.held)}</div></div>` : ""}
+        ${s.position ? `<div class="text-[12px] text-i3 px-1">仓位建议：${esc(s.position)}</div>` : ""}</div>`) : ""}
+      ${(s.risks.length || s.boosts.length) ? sec("风险 / 催化", `<div class="space-y-2">
+        ${s.risks.length ? `<div class="tray p-3.5"><div class="text-[12px] font-semibold mb-1.5" style="color:var(--a-reduce)">🚨 风险</div><ul class="text-[13px] leading-relaxed text-i2 space-y-1">${s.risks.map(r => `<li>· ${esc(r)}</li>`).join("")}</ul></div>` : ""}
+        ${s.boosts.length ? `<div class="tray p-3.5"><div class="text-[12px] font-semibold mb-1.5" style="color:var(--ok)">✨ 催化</div><ul class="text-[13px] leading-relaxed text-i2 space-y-1">${s.boosts.map(r => `<li>· ${esc(r)}</li>`).join("")}</ul></div>` : ""}</div>`) : ""}
+      <section class="px-5 pt-5 safe-b">
+        <button onclick="document.getElementById('full-md').classList.toggle('hidden')" class="tap w-full h-11 rounded-[12px] bg-s2 text-[13px] font-medium flex items-center justify-center gap-2"><i class="ph ph-article"></i>查看完整分析报告</button>
+        <div id="full-md" class="hidden prose-md mt-4">${md(s.raw)}</div>
+        <div class="text-[11px] text-i3 mt-4 text-center mono">分析时间 ${fmtTs(s.ts)}</div>
+      </section>`;
+    const d = document.getElementById("drawer"); d.classList.add("open"); d.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden"; document.getElementById("drawer-body").scrollTop = 0;
+  }
+  function closeDrawer() { const d = document.getElementById("drawer"); d.classList.remove("open"); d.setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
+
+  /* ---------- Market ---------- */
+  function renderMarket() {
+    const el = document.getElementById("view-market"), m = state.market;
+    if (!m) { el.innerHTML = `<div class="card p-8 text-center text-i2 text-[13px]">暂无大盘复盘数据</div>`; return; }
+    el.innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="card p-4"><div class="lbl">盘面信号</div><div class="num text-[34px] font-semibold leading-none mt-3">${m.score ?? "—"}<span class="text-[15px] text-i3 font-normal">/100</span></div><div class="text-[13px] text-i2 mt-2">${esc(m.label)}</div><div class="bar mt-3"><span style="width:${m.score ?? 0}%"></span></div></div>
+        <div class="card p-4 md:col-span-2"><div class="lbl">一句话</div><div class="text-[14px] leading-relaxed mt-2.5">${esc(m.head || "—")}</div>${m.advice ? `<div class="tray p-3 mt-3 text-[13px] text-i2 leading-relaxed"><b class="text-i1">操作建议：</b>${esc(m.advice)}</div>` : ""}</div>
+      </div>
+      ${m.idx.length ? `<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">${m.idx.map(i => `<div class="card p-3.5"><div class="text-[12px] text-i2 truncate">${esc(i.name)}</div><div class="num text-[16px] font-semibold mt-1.5">${esc(i.last)}</div><div class="num text-[12.5px] font-medium mt-1 ${dirCls(i.chg)}">${pct(i.chg, 2)}</div></div>`).join("")}</div>` : ""}
+      <div class="card p-5 prose-md">${md(m.text)}</div>
+      <div class="text-[11px] text-i3 text-center mono">复盘时间 ${fmtTs(m.ts)}</div>`;
+  }
+
+  /* ---------- Radar ---------- */
+  function renderRadar() {
+    const pills = document.getElementById("radar-pills"), feed = document.getElementById("radar-feed"), list = state.radar;
+    if (!list.length) { pills.innerHTML = ""; feed.innerHTML = `<div class="card p-8 text-center text-i2 text-[13px]">暂无情报数据（TrendRadar 推送后出现）</div>`; return; }
+    pills.innerHTML = [{ id: "ALL", t: "全部" }, ...list.map(d => ({ id: d.id, t: d.title.split(/与|、/)[0] }))].map(p => `<button class="${state.radarId === p.id ? "on" : ""}" onclick="state.radarId='${p.id}';renderRadar()">${esc(p.t)}</button>`).join("");
+    const shown = state.radarId === "ALL" ? list : list.filter(d => d.id === state.radarId);
+    feed.innerHTML = shown.map(d => `<article class="card p-4 fade-in">
+      <div class="flex items-center justify-between gap-3 mb-3"><h2 class="text-[15px] font-semibold">${esc(d.title)}</h2><span class="mono text-[10.5px] text-i3 text-right">${esc(d.source.split("·")[0])}等</span></div>
+      <div class="space-y-2">${d.items.map(it => `<div class="tray p-3 text-[13px] leading-relaxed">${it.tag ? `<span class="inline-block px-1.5 py-0.5 rounded-md bg-s3 text-i1 mono text-[11px] font-medium mr-1.5">${esc(it.tag)}</span>` : ""}<span class="text-i2">${esc(it.text)}</span></div>`).join("")}</div></article>`).join("");
+  }
+
+  /* ---------- Shell ---------- */
+  function setView(v) {
+    state.view = v;
+    document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+    ["desk", "market", "radar"].forEach(k => document.getElementById("view-" + k).classList.toggle("hidden", k !== v));
+    window.scrollTo({ top: 0 });
+  }
+  function toggleTheme() {
+    const dark = document.documentElement.classList.toggle("dark");
+    localStorage.setItem("511-theme", dark ? "dark" : "light");
+    document.getElementById("theme-icon").className = "ph " + (dark ? "ph-sun-dim" : "ph-moon") + " text-[17px]";
+    document.querySelector('meta[name="theme-color"]').content = dark ? "#000000" : "#F5F5F2";
+  }
+  function renderAll() { renderDesk(); renderMarket(); renderRadar(); }
+
+  (function init() {
+    if (localStorage.getItem("511-theme") === "light") { document.documentElement.classList.remove("dark"); document.getElementById("theme-icon").className = "ph ph-moon text-[17px]"; }
+    if (loadCache()) renderAll(); else {
+      document.getElementById("kpis").innerHTML = Array(4).fill('<div class="skeleton h-[104px]"></div>').join("");
     }
-
-    function parsePriceRangeBar(priceStr, supStr, resStr) {
-      const p = parseFloat(priceStr);
-      const s = parseFloat(supStr);
-      const r = parseFloat(resStr);
-      if (isNaN(p) || isNaN(s) || isNaN(r) || r <= s) return null;
-      const pct = Math.max(2, Math.min(98, Math.round(((p - s) / (r - s)) * 100)));
-      return { pct, s, r, p };
-    }
-
-    function renderStocks() {
-      const container = document.getElementById("stock-list");
-      const sourceList = stocksData.length ? stocksData : FALLBACK_STOCKS;
-      updateSignalCounts(sourceList);
-
-      const filtered = sourceList.filter(item => {
-        if (currentCat === "ALL") return true;
-        return classifySignal(item) === currentCat;
-      });
-
-      if (!filtered.length) {
-        container.innerHTML = `<div class="outer-card p-8 text-center text-sm text-ink-2">该分类下暂无标的</div>`;
-        return;
-      }
-
-      // MODE A: Compact 1-Line TradingView List (Scan all 11 stocks on 1 phone screen!)
-      if (isCompactMode) {
-        container.innerHTML = `
-          <div class="outer-card divide-y divide-[var(--line)] overflow-hidden">
-            ${filtered.map(s => {
-              const sc = parseInt(s.score || 50);
-              const scoreColor = sc >= 58 ? "text-emerald-500" : (sc >= 48 ? "text-amber-500" : "text-rose-500");
-              const chg = parseFloat(s.changePct || "0");
-              const chgColor = chg > 0 ? "text-emerald-500" : (chg < 0 ? "text-rose-500" : "text-ink-2");
-              return `
-                <div onclick="openSheet('${s.code}')" class="p-3.5 flex items-center justify-between gap-3 hover:bg-surface-2 cursor-pointer ease-out-expo duration-300 tap-scale">
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm font-semibold text-ink-1 truncate">${s.name}</span>
-                      <span class="text-xs font-mono text-ink-3">${s.code}</span>
-                    </div>
-                    <p class="text-xs text-ink-2 truncate mt-0.5">${s.oneSentence}</p>
-                  </div>
-                  <div class="text-right font-mono shrink-0">
-                    <div class="text-sm font-semibold text-ink-1">${s.price || '--'} <span class="text-xs ${chgColor}">${s.changePct || ''}</span></div>
-                    <div class="text-xs font-medium ${scoreColor} mt-0.5">${s.score}分 · ${s.advice}(${s.trend})</div>
-                  </div>
-                </div>
-              `;
-            }).join("")}
-          </div>
-        `;
-        return;
-      }
-
-      // MODE B: Full UX Card (Zero Truncation on Critical Points + Visual Price Position Bar)
-      container.innerHTML = filtered.map(s => {
-        const sc = parseInt(s.score || 50);
-        const isHold = sc >= 58 || s.advice.includes("持有");
-        const badgeStyle = isHold
-          ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-          : (sc >= 48 ? "bg-surface-3 text-ink-1 border border-[var(--line)]" : "bg-rose-500/15 text-rose-400 border border-rose-500/30");
-        const chg = parseFloat(s.changePct || "0");
-        const chgColor = chg > 0 ? "text-emerald-500" : (chg < 0 ? "text-rose-500" : "text-ink-2");
-        const rangeInfo = parsePriceRangeBar(s.price, s.support, s.resistance);
-
-        return `
-          <article class="outer-card p-3 space-y-2.5">
-            <!-- 1. Header: Name + Price + Score -->
-            <div class="px-1 pt-0.5 flex items-start justify-between gap-2">
-              <div>
-                <div class="flex items-center gap-2">
-                  <h2 class="text-base font-semibold text-ink-1 tracking-tight">${s.name}</h2>
-                  <span class="text-xs font-mono text-ink-3">${s.code}</span>
-                  ${s.suggestedPos ? `<span class="text-xs font-mono px-1.5 py-0.5 rounded bg-surface-2 text-ink-2">仓位 ${s.suggestedPos}</span>` : ''}
-                </div>
-                <div class="flex items-baseline gap-2 mt-1 font-mono">
-                  <span class="text-xl font-bold text-ink-1">${s.price || '--'}</span>
-                  <span class="text-xs font-semibold ${chgColor}">${s.changePct || ''}</span>
-                  ${s.bias ? `<span class="text-xs text-ink-3">MA5乖离 ${s.bias}</span>` : ''}
-                </div>
-              </div>
-
-              <div class="text-right shrink-0">
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold font-mono ${badgeStyle}">
-                  ${s.score}分 · ${s.advice} · ${s.trend}
-                </span>
-              </div>
-            </div>
-
-            <!-- 2. One-Sentence Actionable Conclusion (Full text, never truncated) -->
-            <div class="inner-box p-3 space-y-1.5">
-              <div class="text-sm font-medium text-ink-1 leading-snug">
-                ${s.oneSentence}
-              </div>
-              ${(s.noPosAdvice || s.hasPosAdvice) ? `
-              <div class="pt-1.5 border-t border-[var(--line)] space-y-1 text-xs text-ink-2">
-                ${s.noPosAdvice ? `<div><span class="text-ink-1 font-medium">空仓：</span>${s.noPosAdvice.replace(/^空仓者建议[：:]?/, '')}</div>` : ''}
-                ${s.hasPosAdvice ? `<div><span class="text-ink-1 font-medium">持仓：</span>${s.hasPosAdvice.replace(/^持仓者建议[：:]?/, '')}</div>` : ''}
-              </div>` : ''}
-            </div>
-
-            <!-- 3. Visual Support-to-Resistance Thermometer -->
-            ${rangeInfo ? `
-            <div class="inner-box px-3 py-2.5 space-y-1.5">
-              <div class="flex items-center justify-between text-xs font-mono">
-                <span class="text-emerald-500">支撑 ${rangeInfo.s}</span>
-                <span class="text-ink-2">当前区间位置 ${rangeInfo.pct}%</span>
-                <span class="text-amber-500">压力 ${rangeInfo.r}</span>
-              </div>
-              <div class="relative h-2 w-full rounded-full bg-surface-3 overflow-hidden">
-                <div class="absolute inset-y-0 left-0 bg-ink-2/30 rounded-full" style="width: ${rangeInfo.pct}%"></div>
-                <div class="absolute top-0 bottom-0 w-1.5 rounded-full bg-ink-1" style="left: calc(${rangeInfo.pct}% - 3px)"></div>
-              </div>
-            </div>` : ''}
-
-            <!-- 4. 1-Week & 1-Month Forecast (Clean Stacked Rows, Easy to Scan) -->
-            ${(s.weekForecast || s.monthForecast) ? `
-            <div class="inner-box p-3 space-y-2">
-              <div class="text-xs font-semibold text-ink-1 flex items-center justify-between">
-                <span>未来走势前瞻推演</span>
-                <span class="text-[11px] font-mono text-ink-3">1W / 1M</span>
-              </div>
-              ${s.weekForecast ? `
-              <div class="text-xs leading-relaxed text-ink-2">
-                <span class="text-ink-1 font-semibold">未来 1 周 (5日)：</span>${s.weekForecast}
-              </div>` : ''}
-              ${s.monthForecast ? `
-              <div class="text-xs leading-relaxed text-ink-2 pt-1.5 border-t border-[var(--line)]">
-                <span class="text-ink-1 font-semibold">未来 1 月 (20日)：</span>${s.monthForecast}
-              </div>` : ''}
-            </div>` : ''}
-
-            <!-- 5. Sniper Action Points (Stacked Horizontal Rows so Long Conditions NEVER Truncate!) -->
-            <div class="inner-box p-3 space-y-1.5 text-xs">
-              <div class="flex items-baseline justify-between gap-3">
-                <span class="text-ink-3 shrink-0">理想买点</span>
-                <span class="font-mono font-medium text-emerald-500 text-right">${s.idealBuy || '--'}</span>
-              </div>
-              <div class="flex items-baseline justify-between gap-3 pt-1 border-t border-[var(--line)]">
-                <span class="text-ink-3 shrink-0">严格止损</span>
-                <span class="font-mono font-medium text-rose-500 text-right">${s.stopLoss || '--'}</span>
-              </div>
-              <div class="flex items-baseline justify-between gap-3 pt-1 border-t border-[var(--line)]">
-                <span class="text-ink-3 shrink-0">目标止盈</span>
-                <span class="font-mono font-medium text-amber-500 text-right">${s.takeProfit || '--'}</span>
-              </div>
-            </div>
-
-            <!-- 6. Card Footer Action -->
-            <button onclick="openSheet('${s.code}')" class="w-full h-9 rounded-lg bg-surface-2 hover:bg-surface-3 text-xs font-medium text-ink-1 flex items-center justify-center gap-1.5 ease-out-expo duration-300 tap-scale">
-              <span>查看完整均线表、检查清单与信号归因</span>
-              <i class="ph ph-arrow-up-right text-xs"></i>
-            </button>
-          </article>
-        `;
-      }).join("");
-    }
-
-    function openSheet(code) {
-      const sourceList = stocksData.length ? stocksData : FALLBACK_STOCKS;
-      const item = sourceList.find(s => s.code === code);
-      if (!item) return;
-      document.getElementById("sheet-title").textContent = item.name;
-      document.getElementById("sheet-code").textContent = item.code;
-      document.getElementById("sheet-meta").textContent = `综合评分 ${item.score}/100 · 建议: ${item.advice} · 趋势: ${item.trend}`;
-      document.getElementById("sheet-content").innerHTML = `<div class="sheet-prose">${marked.parse(item.rawMarkdown || item.oneSentence)}</div>`;
-      document.getElementById("sheet-backdrop").classList.remove("hidden");
-    }
-
-    function closeSheet() {
-      document.getElementById("sheet-backdrop").classList.add("hidden");
-    }
-
-    function renderRadar() {
-      const pillsEl = document.getElementById("radar-pills");
-      const feedEl = document.getElementById("radar-feed");
-      const list = radarData.length ? radarData : FALLBACK_RADAR;
-
-      pillsEl.innerHTML = [
-        { id: "ALL", title: "全部五域" },
-        ...list.map(d => ({ id: d.id, title: d.title.split("与")[0] }))
-      ].map(p => `
-        <button onclick="activeRadarId='${p.id}'; renderRadar();" class="h-8 px-3 rounded-lg text-xs font-medium whitespace-nowrap ease-out-expo duration-300 tap-scale ${
-          activeRadarId === p.id
-            ? "bg-ink-1 text-surface-0"
-            : "bg-surface-1 text-ink-2 border border-[var(--line)]"
-        }">${p.title}</button>
-      `).join("");
-
-      const shown = activeRadarId === "ALL" ? list : list.filter(d => d.id === activeRadarId);
-      feedEl.innerHTML = shown.map(dom => `
-        <article class="outer-card p-3.5 space-y-2.5">
-          <div class="px-1 flex items-center justify-between">
-            <h2 class="text-base font-semibold text-ink-1">${dom.title}</h2>
-            <span class="text-xs font-mono text-ink-3">${dom.source.split("·")[0]}等</span>
-          </div>
-          <div class="space-y-2">
-            ${dom.items.map(it => `
-              <div class="inner-box p-3 text-sm leading-relaxed text-ink-1">
-                ${it.tag ? `<span class="inline-block px-1.5 py-0.5 rounded bg-surface-3 text-ink-1 font-mono text-xs font-medium mr-1.5">${it.tag}</span>` : ''}
-                <span class="text-ink-2">${it.text}</span>
-              </div>
-            `).join("")}
-          </div>
-        </article>
-      `).join("");
-    }
-
-    function parseRadarText(msgText) {
-      const defs = [
-        { key: "核心热点态势", id: "ai", title: "科技与 AI 最新成果", source: "GitHub · HackerNews · HuggingFace · arXiv" },
-        { key: "异动与弱信号", id: "games", title: "游戏圈与 App Store / Play Store 动态", source: "PocketGamer · TouchArcade · 游戏陀螺 · Steam" },
-        { key: "舆论风向争议", id: "finance", title: "货币、宏观与金融期货", source: "金十数据 · 华尔街见闻 · 财联社 · 格隆汇" },
-        { key: "RSS 深度洞察", id: "geo", title: "国际政治与外媒视野", source: "联合早报 · 参考消息 · 卫星通讯社" },
-        { key: "研判策略建议", id: "social", title: "大众舆情热点与选题灵感", source: "微博 · 知乎 · B站 · 抖音 · 澎湃" }
-      ];
-      const out = [];
-      defs.forEach(def => {
-        const reg = new RegExp(`\\*\\*${def.key}\\*\\*([\\s\\S]*?)(?=\\n\\*\\*(?:核心热点态势|舆论风向争议|异动与弱信号|RSS 深度洞察|研判策略建议)\\*\\*|\\n> 更新时间|$)`);
-        const m = msgText.match(reg);
-        if (m && m[1].trim()) {
-          let currentTag = "";
-          const items = [];
-          m[1].trim().split("\n").map(l => l.trim()).filter(Boolean).forEach(line => {
-            const tagM = line.match(/^【([^】]+)】[：:]?(.*)$/);
-            if (tagM) {
-              currentTag = tagM[1].trim();
-              if (tagM[2].trim()) items.push({ tag: currentTag, text: tagM[2].trim() });
-            } else {
-              const clean = line.replace(/^\d+\.\s*/, "");
-              if (clean) items.push({ tag: currentTag, text: clean });
-            }
-          });
-          if (items.length) out.push({ ...def, items });
-        }
-      });
-      return out.length ? out : FALLBACK_RADAR;
-    }
-
-    async function loadAllData() {
-      const syncEl = document.getElementById("sync-time");
-      const iconEl = document.getElementById("refresh-icon");
-      syncEl.textContent = "同步中...";
-      if (iconEl) iconEl.classList.add("animate-spin");
-
-      // Render fallback immediately so user never sees blank screen
-      renderStocks();
-      renderRadar();
-
-      try {
-        const res = await fetch(`https://ntfy.sh/${TOPIC}/json?poll=1`);
-        const raw = await res.text();
-        const messages = raw.trim().split("\n").filter(Boolean).map(l => JSON.parse(l)).filter(x => x.event === "message");
-
-        // 1. Reassemble Stock Dashboard
-        const stockChunks = messages.filter(x =>
-          (x.title || "").includes("股票分析报告") &&
-          !(x.message || "").includes("# 📈 大盘复盘") &&
-          !(x.message || "").includes("五、消息催化")
-        );
-        stockChunks.sort((a, b) => {
-          const ma = (a.title || "").match(/\((\d+)\/(\d+)\)/);
-          const mb = (b.title || "").match(/\((\d+)\/(\d+)\)/);
-          if (ma && mb && ma[2] === mb[2]) return parseInt(ma[1]) - parseInt(mb[1]);
-          return a.time - b.time;
-        });
-        const fullStockMd = stockChunks.map(x => x.message).join("\n");
-
-        const scoreMap = {};
-        const summaryRegex = /\*\*([^*]+?)\(([^)]+)\)\*\*:\s*([^|]+)\|\s*评分\s*(\d+)\s*\|\s*([^\n]+)/g;
-        let sm;
-        while ((sm = summaryRegex.exec(fullStockMd)) !== null) {
-          scoreMap[sm[2].trim()] = {
-            name: sm[1].trim(),
-            code: sm[2].trim(),
-            advice: sm[3].trim(),
-            score: sm[4].trim(),
-            trend: sm[5].trim()
-          };
-        }
-
-        const sections = fullStockMd.split(/\n(?=##\s+[🟢🟡🔴⚪])/);
-        const parsed = [];
-        sections.forEach(sec => {
-          const hm = sec.match(/^##\s+[🟢🟡🔴⚪]\s+(.+?)\s*\(([^)]+)\)/);
-          if (!hm) return;
-          const name = hm[1].trim();
-          const code = hm[2].trim();
-          const meta = scoreMap[code] || { name, code, advice: "观望", score: "50", trend: "震荡" };
-
-          const oneM = sec.match(/\*\*一句话决策\*\*:\s*([^\n]+)/);
-          const wkM = sec.match(/\*\*📅 未来 1 周推演\*\*：([^\n]+)/);
-          const moM = sec.match(/\*\*📆 未来 1 个月中线预判\*\*：([^\n]+)/);
-          const buyM = sec.match(/\|\s*🎯 理想买入点\s*\|\s*([^|]+)\|/);
-          const stopM = sec.match(/\|\s*🛑 止损位\s*\|\s*([^|]+)\|/);
-          const tpM = sec.match(/\|\s*🎊 目标位\s*\|\s*([^|]+)\|/);
-          const priceM = sec.match(/\|\s*当前价\s*\|\s*([0-9.]+)\s*\|/);
-          const chgM = sec.match(/\|\s*[0-9.]+\s*\|\s*[0-9.]+\s*\|\s*[0-9.]+\s*\|\s*[0-9.]+\s*\|\s*[0-9.]+\s*\|\s*([+-]?[0-9.]+%)\s*\|/);
-          const supM = sec.match(/\|\s*支撑位\s*\|\s*([0-9.]+)\s*\|/);
-          const resM = sec.match(/\|\s*压力位\s*\|\s*([0-9.]+)\s*\|/);
-          const biasM = sec.match(/\|\s*乖离率\(MA5\)\s*\|\s*([^|]+)\|/);
-          const posM = sec.match(/\*\*💰 仓位建议\*\*:\s*(?:建议仓位[：:]?)?([^\n]+)/);
-          const noPosM = sec.match(/\|\s*🆕 \*\*空仓者\*\*\s*\|\s*([^|]+)\|/);
-          const hasPosM = sec.match(/\|\s*💼 \*\*持仓者\*\*\s*\|\s*([^|]+)\|/);
-
-          parsed.push({
-            ...meta,
-            category: /^(sh000|sz399|csi)/i.test(code) ? "INDEX" : (/^(51|58|15)/.test(code) || name.includes("ETF") ? "ETF" : "STOCK"),
-            oneSentence: oneM ? oneM[1].trim() : "",
-            weekForecast: wkM ? wkM[1].trim().replace(/^未来1周（5个交易日）走势推演：/, "") : "",
-            monthForecast: moM ? moM[1].trim().replace(/^未来1个月（20个交易日）中线趋势预判：/, "") : "",
-            idealBuy: buyM ? buyM[1].trim() : "",
-            stopLoss: stopM ? stopM[1].trim() : "",
-            takeProfit: tpM ? tpM[1].trim() : "",
-            price: priceM ? priceM[1].trim() : "",
-            changePct: chgM ? chgM[1].trim() : "",
-            support: supM ? supM[1].trim() : "",
-            resistance: resM ? resM[1].trim() : "",
-            bias: biasM ? biasM[1].trim() : "",
-            suggestedPos: posM ? posM[1].trim() : "",
-            noPosAdvice: noPosM ? noPosM[1].trim() : "",
-            hasPosAdvice: hasPosM ? hasPosM[1].trim() : "",
-            rawMarkdown: sec
-          });
-        });
-
-        if (parsed.length) {
-          parsed.sort((a, b) => parseInt(b.score || 0) - parseInt(a.score || 0));
-          stocksData = parsed;
-          renderStocks();
-        }
-
-        // 2. Market Review
-        const marketChunks = messages.filter(x => (x.message || "").includes("大盘复盘") || (x.message || "").includes("六、明日交易计划"));
-        const fullMarketMd = marketChunks.map(x => x.message).join("\n");
-        const sigM = fullMarketMd.match(/盘面信号\*\*：\s*(\d+)\/100（([^）]+)）/);
-        if (sigM) {
-          document.getElementById("banner-score").textContent = `${sigM[1]}°`;
-          document.getElementById("banner-status").textContent = `${sigM[2]} · 建议总仓 <30%`;
-        }
-        document.getElementById("market-view").innerHTML = `
-          <div class="outer-card p-4 sheet-prose">
-            ${marked.parse(fullMarketMd || "暂无大盘复盘数据")}
-          </div>
-        `;
-
-        // 3. TrendRadar 5-Domain AI Report
-        const radarMsgs = messages.filter(x => (x.message || "").includes("AI 热点分析"));
-        if (radarMsgs.length) {
-          radarData = parseRadarText(radarMsgs[radarMsgs.length - 1].message);
-          renderRadar();
-        }
-
-        const lastTs = messages.length ? new Date(messages[messages.length - 1].time * 1000).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) : "--";
-        syncEl.textContent = `已同步 ${lastTs}`;
-      } catch (err) {
-        syncEl.textContent = "本地快照模式";
-      } finally {
-        if (iconEl) iconEl.classList.remove("animate-spin");
-      }
-    }
-
-    loadAllData();
-  </script>
+    loadAll();
+  })();
+</script>
 </body>
 </html>
