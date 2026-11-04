@@ -211,7 +211,7 @@
 <script>
   /* ================= Config & state ================= */
   const TOPIC = "trendradar-mac-511";
-  const CACHE_KEY = "511-cache-v6";
+  const CACHE_KEY = "511-cache-v7";
   const ADV = {
     BUY:    { label: "买入 / 加仓", short: "买入", color: "var(--a-buy)",    icon: "ph-arrow-fat-line-up" },
     HOLD:   { label: "持有",       short: "持有", color: "var(--a-hold)",   icon: "ph-hand-grabbing" },
@@ -317,6 +317,35 @@
   /* ================= Parsing ntfy messages ================= */
   const CARD_RE = /^📈\s*([🟢🟡🔴⚪🟠])?\s*(.+?)\s*\(([A-Za-z0-9.]+)\)(?:\s*\((\d+)\/(\d+)\))?\s*$/u;
 
+  function buildStock(head, sec, sm, latest) {
+      const tables = getTables(sec);
+
+      const price = num1(colUnder(tables, "当前价") || kv(tables, "当前价"));
+      const chg = num1(colUnder(tables, "涨跌幅"));
+      const support = num1(kv(tables, "支撑位")), resistance = num1(kv(tables, "压力位"));
+      const conc = sec.match(/核心结论\s*\n+\*\*([🟢🟡🔴⚪🟠])?\s*([^*]+?)\*\*\s*\|\s*([^\n]+)/u);
+      const advText = conc ? conc[2] : (sm.advice || "");
+      const advice = normAdvice(advText, conc?.[1] || sm.emoji || head.emoji);
+      const trend = (conc ? conc[3].trim() : sm.trend) || "";
+      const plan = buildPlan(sec, tables, price, support, resistance);
+      const scoreRaw = Number.isFinite(sm.score) ? sm.score : parseInt(grab(sec, /趋势强度[:：]\s*(\d+)/));
+      return {
+        code: head.code, name: head.name === "待确认股票" && sm.name ? sm.name : head.name, type: typeOf(head.code, head.name),
+        advice, adviceText: advText.trim(), trend, score: Number.isFinite(scoreRaw) ? scoreRaw : null,
+        price, chg, support, resistance, plan,
+        ma5: num1(kv(tables, "MA5")), ma10: num1(kv(tables, "MA10")), ma20: num1(kv(tables, "MA20")),
+        bias: kv(tables, "乖离率"), trendStrength: parseInt(grab(sec, /趋势强度[:：]\s*(\d+)/)),
+        one: grab(sec, /一句话决策\*\*[:：]\s*([^\n]+)/),
+        week: grab(sec, /未来 ?1 ?周推演\*\*[:：]\s*([^\n]+)/).replace(/^未来1周（5个交易日）走势推演[:：]/, ""),
+        month: grab(sec, /未来 ?1 ?个月中线预判\*\*[:：]\s*([^\n]+)/).replace(/^未来1个月（20个交易日）中线趋势预判[:：]/, ""),
+        shape: grab(sec, /形态与趋势结构\*\*[:：]\s*([^\n]+)/),
+        flat: (tables.find(t => t.header.includes("持仓情况")) || { rows: [] }).rows.reduce((o, r) => { if (r[0].includes("空仓")) o.empty = r[1]; if (r[0].includes("持仓者")) o.held = r[1]; return o; }, {}),
+        position: grab(sec, /仓位建议\*\*[:：]\s*([^\n]+)/),
+        risks: bullets(sec, /风险警报\*\*[:：]?\s*\n/), boosts: bullets(sec, /利好催化\*\*[:：]?\s*\n/),
+        raw: sec, ts: latest,
+      };
+  }
+
   function parseStocks(messages) {
     // summary
     const summary = {};
@@ -346,60 +375,59 @@
       const sec = ordered.map(c => c.msg).join("\n");
       const head = ordered[0];
       const sm = summary[ukey] || {};
-      const tables = getTables(sec);
-
-      const price = num1(colUnder(tables, "当前价") || kv(tables, "当前价"));
-      const chg = num1(colUnder(tables, "涨跌幅"));
-      const support = num1(kv(tables, "支撑位")), resistance = num1(kv(tables, "压力位"));
-      const conc = sec.match(/核心结论\s*\n+\*\*([🟢🟡🔴⚪🟠])?\s*([^*]+?)\*\*\s*\|\s*([^\n]+)/u);
-      const advText = conc ? conc[2] : (sm.advice || "");
-      const advice = normAdvice(advText, conc?.[1] || sm.emoji || head.emoji);
-      const trend = (conc ? conc[3].trim() : sm.trend) || "";
-      const plan = buildPlan(sec, tables, price, support, resistance);
-      const scoreRaw = Number.isFinite(sm.score) ? sm.score : parseInt(grab(sec, /趋势强度[:：]\s*(\d+)/));
-      list.push({
-        code: head.code, name: head.name === "待确认股票" && sm.name ? sm.name : head.name, type: typeOf(head.code, head.name),
-        advice, adviceText: advText.trim(), trend, score: Number.isFinite(scoreRaw) ? scoreRaw : null,
-        price, chg, support, resistance, plan,
-        ma5: num1(kv(tables, "MA5")), ma10: num1(kv(tables, "MA10")), ma20: num1(kv(tables, "MA20")),
-        bias: kv(tables, "乖离率"), trendStrength: parseInt(grab(sec, /趋势强度[:：]\s*(\d+)/)),
-        one: grab(sec, /一句话决策\*\*[:：]\s*([^\n]+)/),
-        week: grab(sec, /未来 ?1 ?周推演\*\*[:：]\s*([^\n]+)/).replace(/^未来1周（5个交易日）走势推演[:：]/, ""),
-        month: grab(sec, /未来 ?1 ?个月中线预判\*\*[:：]\s*([^\n]+)/).replace(/^未来1个月（20个交易日）中线趋势预判[:：]/, ""),
-        shape: grab(sec, /形态与趋势结构\*\*[:：]\s*([^\n]+)/),
-        flat: (tables.find(t => t.header.includes("持仓情况")) || { rows: [] }).rows.reduce((o, r) => { if (r[0].includes("空仓")) o.empty = r[1]; if (r[0].includes("持仓者")) o.held = r[1]; return o; }, {}),
-        position: grab(sec, /仓位建议\*\*[:：]\s*([^\n]+)/),
-        risks: bullets(sec, /风险警报\*\*[:：]?\s*\n/), boosts: bullets(sec, /利好催化\*\*[:：]?\s*\n/),
-        raw: sec, ts: latest,
-      });
+      list.push(buildStock(head, sec, sm, latest));
     });
     return list.filter(s => Number.isFinite(s.price) && s.price > 0);
   }
 
   const n1 = (v, d = 1) => (Number.isFinite(parseFloat(v)) ? parseFloat(v).toFixed(d) : "");
+  const DISC_RE = /^🔎\s*(.+?)\s*\(([A-Za-z0-9.]+)\)(?:\s*\((\d+)\/(\d+)\))?\s*$/u;
   function parseDiscover(messages) {
-    const cards = messages.map(x => ({ x, m: (x.title || "").match(/^🔎\s*(.+?)\s*\(([A-Za-z0-9.]+)\)\s*$/u) })).filter(o => o.m);
+    const cards = messages.map(x => ({ x, m: (x.title || "").match(DISC_RE) })).filter(o => o.m);
     if (!cards.length) return null;
     const latest = Math.max(...cards.map(o => o.x.time));
-    const seen = {};
-    cards.filter(o => o.x.time >= latest - 1800).forEach(o => { const c = o.m[2].toUpperCase(); if (!seen[c] || o.x.time > seen[c].x.time) seen[c] = o; });
-    const list = Object.values(seen).map(o => {
-      const sec = o.x.message || "", tables = getTables(sec), name = o.m[1].trim(), code = o.m[2];
-      const price = parseFloat(grab(sec, /现价\*\*[:：]\s*([\d.]+)/));
-      const hits = grab(sec, /命中策略\*\*[:：]\s*([^\n]+)/).split("·").map(t => t.trim()).filter(Boolean);
-      const plan = buildPlan(sec, tables, price, NaN, NaN);
-      const trend = grab(sec, /趋势\*\*[:：]\s*([^\s|\n]+)/) || (plan && plan.bearish ? "看空" : "");
-      const sup = parseFloat(grab(sec, /支撑位\*\*[:：]\s*([\d.]+)/)), res = parseFloat(grab(sec, /压力位\*\*[:：]\s*([\d.]+)/));
-      // 候选股没有持仓语境：入场条件成立(ok/wait)→买入；其余→观望。分类维度与自选一致
-      const advice = plan && (plan.verdict === "ok" || plan.verdict === "wait") ? "BUY" : "WATCH";
-      return {
-        code, name, type: typeOf(code, name), advice, price, chg: parseFloat(grab(sec, /涨跌\*\*[:：]\s*([+-]?[\d.]+)%/)),
-        score: parseFloat(grab(sec, /综合评分\*\*[:：]\s*([\d.]+)/)), plan, one: grab(sec, /入选理由\*\*[:：]\s*([^\n]+)/),
-        risks: [grab(sec, /风险提示\*\*[:：]\s*([^\n]+)/)].filter(t => t && t !== "—"), boosts: [], week: "", month: "", flat: {}, position: "",
-        support: Number.isFinite(sup) ? sup : (plan ? plan.stop : NaN), resistance: Number.isFinite(res) ? res : (plan ? (Number.isFinite(plan.resistance) ? plan.resistance : (plan.targets[1] ?? plan.targets[0])) : NaN), trend, raw: sec, ts: o.x.time,
-        disc: { hits, industry: grab(sec, /行业\*\*[:：]\s*([^\n]+)/).replace(/^—$/, ""), pe: n1(grab(sec, /PE\*\*[:：]\s*([^|\n]+)/)), pb: n1(grab(sec, /PB\*\*[:：]\s*([^|\n]+)/), 2), mv: grab(sec, /市值亿\*\*[:：]\s*([^|\n]+)/) },
-      };
+    const byCode = {};
+    cards.filter(o => o.x.time >= latest - 900).forEach(o => {
+      const c = o.m[2].toUpperCase(), n = +(o.m[3] || 1);
+      const arr = (byCode[c] = byCode[c] || {});
+      if (!arr[n] || o.x.time > arr[n].time) arr[n] = { time: o.x.time, name: o.m[1].trim(), code: o.m[2], msg: o.x.message || "" };
     });
+    const list = Object.values(byCode).map(parts => {
+      const ordered = Object.keys(parts).map(Number).sort((a, b) => a - b).map(k => parts[k]);
+      const sec = ordered.map(c => c.msg).join("\n"), ts = Math.max(...ordered.map(c => c.time));
+      const code = ordered[0].code, name = ordered[0].name;
+      const head = { code, name, emoji: "" };
+      const hPrice = parseFloat(grab(sec, /现价\*\*[:：]\s*([\d.]+)/)), hChg = parseFloat(grab(sec, /涨跌\*\*[:：]\s*([+-]?[\d.]+)%/));
+      const hits = grab(sec, /命中策略\*\*[:：]\s*([^\n]+)/).split("·").map(t => t.trim()).filter(Boolean);
+      const reason = grab(sec, /入选理由\*\*[:：]\s*([^\n]+)/);
+      const am = sec.match(/AI复核\*\*[:：]\s*(\S+?)\s*·\s*([\d.]+|—)分\s*\|\s*([^|\n]+?)\s*\|\s*\*\*主要风险\*\*[:：]\s*([^\n]+)/);
+      const disc = {
+        hits, industry: grab(sec, /行业\*\*[:：]\s*([^\n]+)/).replace(/^—$/, ""), pe: n1(grab(sec, /PE\*\*[:：]\s*([^|\n]+)/)), pb: n1(grab(sec, /PB\*\*[:：]\s*([^|\n]+)/), 2), mv: grab(sec, /市值亿\*\*[:：]\s*([^|\n]+)/),
+        fund: grab(sec, /基本面\*\*[:：]\s*([^\n]+)/), reason, sscore: parseFloat(grab(sec, /综合评分\*\*[:：]\s*([\d.]+)/)),
+        ai: am ? { verdict: am[1], score: am[2], reason: am[3].trim(), risk: am[4].trim().replace(/^—$/, "") } : null,
+      };
+      const deep = /核心结论/.test(sec);
+      let st;
+      if (deep) {
+        const sm = (() => { const m = /([🟢🟡🔴⚪🟠])\s*\*\*(.+?)\(([^()]+)\)\*\*[：:]\s*([^|\n]+?)\s*\|\s*评分\s*(\d+)\s*\|\s*([^\n]+)/u.exec(sec); return m ? { emoji: m[1], name: m[2].trim(), advice: m[4].trim(), score: +m[5], trend: m[6].trim() } : {}; })();
+        st = buildStock(head, sec, sm, ts);
+        if (!Number.isFinite(st.price)) st.price = hPrice;
+        if (!Number.isFinite(st.chg)) st.chg = hChg;
+        if (!st.one) st.one = reason;
+        st.deep = true;
+      } else {
+        const plan = buildPlan(sec, getTables(sec), hPrice, NaN, NaN);
+        const trend = grab(sec, /趋势\*\*[:：]\s*([^\s|\n]+)/) || (plan && plan.bearish ? "看空" : "");
+        const sup = parseFloat(grab(sec, /支撑位\*\*[:：]\s*([\d.]+)/)), res = parseFloat(grab(sec, /压力位\*\*[:：]\s*([\d.]+)/));
+        st = {
+          code, name, type: typeOf(code, name), advice: plan && (plan.verdict === "ok" || plan.verdict === "wait") ? "BUY" : "WATCH", price: hPrice, chg: hChg,
+          score: disc.sscore, plan, one: reason, risks: [grab(sec, /风险提示\*\*[:：]\s*([^\n]+)/)].filter(t => t && t !== "—"), boosts: [], week: "", month: "", flat: {}, position: "",
+          support: Number.isFinite(sup) ? sup : (plan ? plan.stop : NaN), resistance: Number.isFinite(res) ? res : (plan ? (Number.isFinite(plan.resistance) ? plan.resistance : (plan.targets[1] ?? plan.targets[0])) : NaN), trend, raw: sec, ts,
+        };
+      }
+      st.disc = disc;
+      return st;
+    }).filter(s => Number.isFinite(s.price) && s.price > 0);
     return { list, ts: latest };
   }
 
@@ -627,7 +655,7 @@
     const strategies = [...new Set(state.discover.flatMap(s => s.disc.hits))];
     el.innerHTML = `<div class="flex items-start gap-3"><div class="w-9 h-9 rounded-[11px] bg-s2 flex items-center justify-center shrink-0"><i class="ph-bold ph-compass text-[18px]"></i></div>
       <div class="min-w-0"><div class="text-[14px] font-semibold">全市场量化初筛 · 已排除你的自选</div>
-      <div class="text-[12px] text-i2 mt-1 leading-relaxed">${state.discover.length ? `${fmtTs(state.discTs)} · 策略：${esc(strategies.join("、"))} · 看板与自选完全一致` : "运行「选股发现」后，候选会出现在这里。"}</div></div></div>`;
+      <div class="text-[12px] text-i2 mt-1 leading-relaxed">${state.discover.length ? `${fmtTs(state.discTs)} · 策略：${esc(strategies.join("、"))} · 基本面过滤 · AI 复核 · 完整分析，与自选看板一致` : "运行「选股发现」后，候选会出现在这里。"}</div></div></div>`;
   }
   function renderDesk() {
     const base = visible();
@@ -699,6 +727,14 @@
       return `<div class="flex items-center justify-between px-3.5 py-2.5" style="border-color:var(--line)"><div class="flex items-center gap-2 text-[13px]"><span class="dot" style="--c:${r[3]}"></span>${r[1]}</div><div class="flex items-baseline gap-3"><span class="num font-semibold text-[14px]">${fp(r[2], s.price)}</span><span class="num text-[12px] w-14 text-right ${dirCls(d)}">${pct(d)}</span></div></div>`;
     }).join("")}</div>`;
   }
+  function discBasis(s) {
+    const d = s.disc, ai = d.ai, c = ai ? ({ "跟踪": "var(--ok)", "观望": "var(--wait)", "回避": "var(--skip)" })[ai.verdict] || "var(--ink-2)" : "";
+    return `<div class="space-y-2">
+      <div class="flex flex-wrap gap-1.5">${d.hits.map(h => `<span class="chip" style="--c:var(--a-buy)">${esc(h)}</span>`).join("")}${d.industry ? `<span class="chip" style="--c:var(--ink-2)">${esc(d.industry)}</span>` : ""}</div>
+      ${d.fund ? `<div class="tray p-3.5"><div class="text-[12px] font-semibold mb-1.5"><i class="ph-bold ph-chart-line-up"></i> 基本面</div><div class="text-[13px] leading-relaxed text-i2">${esc(d.fund)}</div></div>` : ""}
+      ${ai ? `<div class="tray p-3.5"><div class="flex items-center gap-2 mb-1.5"><span class="text-[12px] font-semibold"><i class="ph-bold ph-sparkle"></i> AI 复核</span><span class="chip" style="--c:${c}">${esc(ai.verdict)}${ai.score && ai.score !== "—" ? ` · ${esc(ai.score)}分` : ""}</span></div><div class="text-[13px] leading-relaxed text-i2">${esc(ai.reason)}</div>${ai.risk ? `<div class="text-[12px] mt-1.5" style="color:var(--a-reduce)">主要风险：${esc(ai.risk)}</div>` : ""}</div>` : ""}
+      ${d.reason ? `<div class="text-[11.5px] text-i3 px-1 leading-relaxed">量化初筛：${esc(d.reason)}</div>` : ""}</div>`;
+  }
   function openDrawer(code) {
     const s = state.stocks.find(x => x.code === code) || state.discover.find(x => x.code === code); if (!s) return;
     const p = s.plan, sec = (t, body) => `<section class="px-5 pt-5"><div class="lbl mb-2.5">${t}</div>${body}</section>`;
@@ -710,11 +746,12 @@
         </div>
         <div class="flex items-end justify-between mt-4">
           <div><div class="num text-[32px] leading-none font-semibold">${fp(s.price)}</div><div class="num text-[13px] mt-2 font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></div>
-          <div class="flex flex-col items-end gap-1.5">${s.disc ? `<div class="flex flex-wrap gap-1.5 justify-end">${s.disc.hits.map(h => `<span class="chip" style="--c:var(--a-buy)">${esc(h)}</span>`).join("")}</div>` : advChip(s.advice)}${s.score != null ? `<div class="flex items-center gap-2"><span class="lbl">评分</span><span class="num font-semibold text-[15px]">${s.score}</span></div>` : ""}</div>
+          <div class="flex flex-col items-end gap-1.5">${advChip(s.advice)}${s.score != null ? `<div class="flex items-center gap-2"><span class="lbl">评分</span><span class="num font-semibold text-[15px]">${s.score}</span></div>` : ""}</div>
         </div>
       </div>
       ${actionCard(s)}
-      ${s.one ? sec(s.disc ? "入选理由" : "一句话决策", `<div class="tray p-3.5 text-[13.5px] leading-relaxed">${esc(s.one)}</div>`) : ""}
+      ${s.disc ? sec("选股依据", discBasis(s)) : ""}
+      ${s.one ? sec("一句话决策", `<div class="tray p-3.5 text-[13.5px] leading-relaxed">${esc(s.one)}</div>`) : ""}
       ${sec(`交易计划${p ? ` · <span class="normal-case tracking-normal" style="color:var(--ink-3)">${p.src === "ATR" ? "ATR 波动率法" : "均线法（旧）"}</span>` : ""}`, `
         ${p ? `<div class="flex flex-wrap gap-2 mb-3">${verChip(s, false)}${Number.isFinite(p.atr) ? `<span class="chip" style="--c:var(--ink-2)">ATR14 ${fp(p.atr, s.price)}（${p.atrPct.toFixed(1)}%）</span>` : ""}</div>` : ""}
         ${rulerHtml(s)}
