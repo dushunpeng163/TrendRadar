@@ -234,7 +234,7 @@
     weak: { t: "仅限小仓",   c: "var(--weak)", i: "ph-warning" },
     skip: { t: "不值得出手", c: "var(--skip)", i: "ph-prohibit" },
   };
-  const state = { view: "desk", adv: "ALL", type: "ALL", q: "", sort: "score", dir: -1, stocks: [], discover: [], discFilter: "ALL", market: null, radar: [], asOf: 0, radarId: "ALL" };
+  const state = { risk: parseFloat(localStorage.getItem("511-risk")) || 1, openCode: null, view: "desk", adv: "ALL", type: "ALL", q: "", sort: "score", dir: -1, stocks: [], discover: [], discFilter: "ALL", market: null, radar: [], asOf: 0, radarId: "ALL" };
 
   /* ================= Helpers ================= */
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -311,7 +311,7 @@
         const vm = sec.match(/风控结论\*\*[：:]\s*(✅|⏳|⚠️|❌)\s*([^\n]+)/);
         const atrM = sec.match(/ATR14=([\d.]+)，约占现价([\d.]+)%/);
         const code = vm ? ({ "✅": "ok", "⏳": "wait", "⚠️": "weak", "❌": "skip" })[vm[1]] : verdictOf(rrN, rrE);
-        return { src: "ATR", entry, stop, targets, rrEntry: rrE, rrNow: rrN, resistance: resM ? +resM[1] : NaN, resLabel: resM ? resM[2] : "", verdict: code, verdictText: vm ? vm[2].trim() : VERDICT[code].t, atr: atrM ? +atrM[1] : NaN, atrPct: atrM ? +atrM[2] : NaN };
+        return { src: "ATR", entry, stop, targets, rrEntry: rrE, rrNow: rrN, resistance: resM ? +resM[1] : NaN, resLabel: resM ? resM[2] : "", verdict: code, bearish: /空头排列/.test(vm ? vm[2] : ""), verdictText: vm ? vm[2].trim() : VERDICT[code].t, atr: atrM ? +atrM[1] : NaN, atrPct: atrM ? +atrM[2] : NaN };
       }
     }
     // legacy (MA based) rows -> compute R:R on the client
@@ -500,6 +500,79 @@
     if (s.advice === "WATCH" && (p.verdict === "ok" || p.verdict === "wait")) return { code: "weak", text: "盈亏比尚可，但信号未确认，先观望" };
     return { code: p.verdict, text: p.verdictText };
   }
+  /* ================= Action plan: 是否出手 / 何时出手 / 如何出手 ================= */
+  function actionPlan(s) {
+    const p = s.plan, price = s.price;
+    if (!p || !Number.isFinite(price)) return null;
+    const v = effVerdict(s), f = x => fp(x, price), d = x => pct((x / price - 1) * 100);
+    const t = p.targets, t1 = t[0], t2 = t[1] ?? t[0], t3 = t[2] ?? t[t.length - 1];
+    const hasRes = Number.isFinite(p.resistance) && p.resistance > price * 1.002;
+    const cap = hasRes ? Math.min(t2, p.resistance) : t2;
+    const X = (p.src === "ATR" && Number.isFinite(p.atr)) ? cap - 4 * p.atr : (cap + 2 * p.stop) / 3;   // 盈亏比回到 2 的最高入场价
+    const xOk = Number.isFinite(X) && X > p.stop && X < price * 0.995;
+    const riskPct = (p.entry - p.stop) / p.entry * 100;
+    const posCap = Math.max(1, Math.min(30, state.risk / riskPct * 100));
+    const second = Number.isFinite(p.atr) ? p.entry - p.atr : p.entry * 0.97;
+    const resTight = hasRes && (p.resistance / price - 1) * 100 < riskPct * 2;
+    const rrTxt = `盈亏比：回踩入场 1:${p.rrEntry.toFixed(1)}，现价追入 1:${p.rrNow.toFixed(1)}` + (hasRes ? `；上方压力 ${f(p.resistance)}（${d(p.resistance)}）${resTight ? "，空间偏小" : ""}` : "");
+    const A = { code: v.code, why: p.bearish ? [v.text, "趋势优先于盈亏比：均线空头排列时，逆势入场的胜率低，数字再好看也先不做"] : [v.text, rrTxt], when: [], how: [] };
+
+    const exits = t.length > 1
+      ? [`目标1 ${f(t1)}（${d(t1)}）：减 1/3，并把止损上移到成本价`, `目标2 ${f(t2)}（${d(t2)}）：再减 1/3`, `剩余用「最高价 − 2×ATR」跟踪止损，持有到目标3 ${f(t3)}（${d(t3)}）或被止损`]
+      : [`目标 ${f(t1)}（${d(t1)}）：分批止盈，到价先落袋一半`];
+    const stopLine = `止损 ${f(p.stop)}（${d(p.stop)}）：收盘跌破即离场，不摊平、不加仓`;
+    const sizing = `仓位上限 ${posCap.toFixed(0)}%：按「单笔最大亏损 = 总资金 ${state.risk}%」反推（止损距离 ${riskPct.toFixed(1)}%）；分两批，首批一半`;
+
+    if (s.advice === "REDUCE") {
+      Object.assign(A, { label: "不出手", short: "不抄底 · 反弹减仓", color: "var(--a-reduce)", icon: "ph-prohibit" });
+      const rb = Number.isFinite(s.ma5) && s.ma5 > price ? s.ma5 : (hasRes ? p.resistance : price * 1.03);
+      A.when = [`持仓者：反弹到 ${f(rb)}（${d(rb)}）附近分批减仓，不要等回到高点`, `空仓者：趋势转强前不碰（需站上 MA20 且 MA5 > MA10）`];
+      A.how = [`持仓者：收盘跌破 ${f(p.stop)}（${d(p.stop)}）清仓`, `空仓者：0 仓`];
+    } else if (v.code === "ok") {
+      Object.assign(A, { label: "可以出手", short: "现价分批入场", color: "var(--ok)", icon: "ph-check-circle" });
+      A.when = [`现价 ${f(price)} 附近即可入场（计划入场价 ${f(p.entry)}）`, `盘中缩量回踩不破 ${f(p.entry)} 更佳，放量急拉不追`, `有效期：下一次分析前；收盘跌破 ${f(p.stop)} 则计划作废`];
+      A.how = [sizing, `第二批：回落到 ${f(second)}（${d(second)}）附近、确认企稳再加`, stopLine, ...exits];
+    } else if (v.code === "wait") {
+      Object.assign(A, { label: "等待出手", short: `等回踩 ${f(p.entry)}`, color: "var(--wait)", icon: "ph-hourglass-medium" });
+      A.when = [`等价格回踩到 ${f(p.entry)}（${d(p.entry)}）附近、缩量企稳再入，不追高`, `若不回踩直接上涨：放弃本次，等下一次回踩`, `有效期：下一次分析前；回踩跌破 ${f(p.stop)} 则作废`];
+      A.how = [sizing, `第二批：回落到 ${f(second)}（${d(second)}）附近、确认企稳再加`, stopLine, ...exits];
+    } else if (v.code === "weak") {
+      const unconfirmed = s.advice === "WATCH";
+      Object.assign(A, { label: unconfirmed ? "先观望" : "小仓试探", short: unconfirmed ? `信号未确认 · ${f(p.entry)} 试探` : `仅小仓 · 回踩 ${f(p.entry)}`, color: "var(--weak)", icon: "ph-warning" });
+      A.when = [unconfirmed ? `技术信号还没确认，先观望；转强（站上 MA20、放量）后再按下面执行` : `盈亏比一般，只在回踩 ${f(p.entry)}（${d(p.entry)}）附近用小仓位试探`, `有效期：下一次分析前；跌破 ${f(p.stop)} 则作废`];
+      A.how = [`仓位上限降到 ${Math.max(1, posCap / 2).toFixed(0)}%（正常的一半），一次建仓不分批`, stopLine, ...exits.slice(0, 2)];
+    } else {
+      Object.assign(A, { label: "不出手", short: p.bearish ? "空头趋势 · 等转强" : (xOk ? `等回落 ≤${f(X)}` : "暂无好入场价"), color: "var(--skip)", icon: "ph-prohibit" });
+      if (p.bearish) {
+        const ma20 = Number.isFinite(s.ma20) ? `（${f(s.ma20)}）` : "";
+        A.when = [`转强信号：收盘站上 MA20${ma20}，并连续 2~3 个交易日不跌回`, `再出现放量阳线、且 MA5 重新上穿 MA10，才重新评估入场`, `在此之前不抄底、不补仓；下一次分析会重新判断`];
+        A.how = [`转强确认前保持 0 仓`, `确认后按「回踩入场」执行：${sizing.replace("；分两批，首批一半", "")}`, stopLine];
+      } else {
+      A.when = [xOk ? `回踩路径：价格回落到 ${f(X)}（${d(X)}）以下并企稳，盈亏比可恢复到 ≥ 2` : `回踩路径：目标空间太小，回落也难以满足盈亏比 ≥ 2`, hasRes ? `突破路径：收盘站稳 ${f(p.resistance)}（${d(p.resistance)}）且放量（量比 > 1.2），回踩不破再入` : `突破路径：创出新高并放量后再评估`, `条件满足前不出手；下一次分析会重新计算`];
+      A.how = [`条件触发前保持 0 仓，不为「怕错过」提前上车`, `触发后：${sizing.replace("；分两批，首批一半", "")}`, stopLine];
+      }
+    }
+    return A;
+  }
+  const actChip = (s, withShort) => { const a = actionPlan(s); return !a ? `<span class="text-i3">—</span>` : `<span class="chip" style="--c:${a.color}"><i class="ph-bold ${a.icon}"></i>${a.label}</span>${withShort ? `<div class="text-[11.5px] text-i3 mt-1 num">${esc(a.short)}</div>` : ""}`; };
+  function actionCard(s) {
+    const a = actionPlan(s); if (!a) return "";
+    const blk = (icon, title, lines) => `<div class="tray p-3.5"><div class="flex items-center gap-2 text-[12px] font-semibold mb-2"><i class="ph-bold ${icon}"></i>${title}</div><ul class="space-y-1.5 text-[13px] leading-relaxed text-i2">${lines.map(l => `<li class="flex gap-2"><span class="text-i3 shrink-0">›</span><span>${esc(l)}</span></li>`).join("")}</ul></div>`;
+    return `<section class="px-5 pt-5">
+      <div class="rounded-2xl p-1.5" style="background:color-mix(in srgb,${a.color} 14%,var(--bg-1));border:1px solid color-mix(in srgb,${a.color} 38%,var(--line))">
+        <div class="flex items-center justify-between gap-3 px-3 py-2.5">
+          <div class="flex items-center gap-2.5 min-w-0"><i class="ph-bold ${a.icon} text-[22px]" style="color:${a.color}"></i><div class="min-w-0"><div class="text-[17px] font-semibold leading-tight">${a.label}</div><div class="text-[12px] text-i2 mt-0.5 num">${esc(a.short)}</div></div></div>
+          <label class="flex items-center gap-1.5 text-[11px] text-i3 shrink-0">单笔风险
+            <select class="sel" style="height:30px;border-radius:9px;font-size:12px;padding:0 6px" onchange="setRisk(this.value)">${[0.5, 1, 2].map(x => `<option value="${x}" ${state.risk === x ? "selected" : ""}>${x}%</option>`).join("")}</select></label>
+        </div>
+        <div class="space-y-1.5">
+          ${blk("ph-question", "是否出手 · 为什么", a.why)}
+          ${blk("ph-clock", "何时出手 · 触发条件", a.when)}
+          ${blk("ph-path", "如何出手 · 仓位与止盈止损", a.how)}
+        </div>
+      </div></section>`;
+  }
+  function setRisk(v) { state.risk = +v; localStorage.setItem("511-risk", v); renderAll(); if (state.openCode) { const y = document.getElementById("drawer-body").scrollTop; openDrawer(state.openCode); document.getElementById("drawer-body").scrollTop = y; } }
   const staleTag = s => (state.asOf && s.ts < state.asOf - 3 * 3600) ? `<span class="chip ml-1.5" style="--c:var(--ink-3)">旧 ${fmtTs(s.ts)}</span>` : "";
   const advChip = k => `<span class="chip" style="--c:${ADV[k].color}"><i class="ph-bold ${ADV[k].icon}"></i>${ADV[k].short}</span>`;
   const verChip = (s, compact) => { const v = effVerdict(s); return !v ? "" : `<span class="chip" style="--c:${VERDICT[v.code].c}"><i class="ph-bold ${VERDICT[v.code].i}"></i>${compact ? VERDICT[v.code].t : esc(v.text)}</span>`; };
@@ -529,7 +602,7 @@
     document.getElementById("kpis").innerHTML =
       kpi("市场温度", mk && mk.score != null ? `${mk.score}<span class="text-[14px] text-i3 font-normal">/100</span>` : "—", mk ? esc(mk.label) : "等待大盘复盘") +
       kpi("买入 / 加仓候选", `${cnt("BUY")}<span class="text-[14px] text-i3 font-normal"> / ${n}</span>`, `持有 ${cnt("HOLD")} · 观望 ${cnt("WATCH")} · 减仓 ${cnt("REDUCE")}`) +
-      kpi("盈亏比合格", `${ok}<span class="text-[14px] text-i3 font-normal"> / ${n}</span>`, wait ? `另有 ${wait} 只等回踩入场` : "现价即可入场的标的数") +
+      kpi("现价可出手", `${ok}<span class="text-[14px] text-i3 font-normal"> / ${n}</span>`, wait ? `另有 ${wait} 只等回踩入场` : "现价即可入场的标的数") +
       kpi("平均评分", avg == null ? "—" : avg, "全部标的综合技术评分");
     const total = Math.max(1, n);
     document.getElementById("dist").innerHTML = `
@@ -562,7 +635,7 @@
 
     const th = (k, label, cls = "") => `<th class="sort ${cls}" onclick="setSort('${k}')">${label}${state.sort === k ? `<i class="ph-bold ${state.dir < 0 ? "ph-caret-down" : "ph-caret-up"} ml-1"></i>` : ""}</th>`;
     document.getElementById("table-wrap").innerHTML = `<table class="dtable" style="min-width:940px"><thead><tr>
-      ${th("name", "标的")}${th("price", "现价", "r")}${th("chg", "涨跌", "r")}${th("score", "评分", "r")}${th("adv", "操作建议")}<th>趋势</th><th>支撑 — 压力</th>${th("rr", "盈亏比 回踩 / 追入", "r")}<th>风控结论</th></tr></thead><tbody>
+      ${th("name", "标的")}${th("price", "现价", "r")}${th("chg", "涨跌", "r")}${th("score", "评分", "r")}${th("adv", "操作建议")}<th>趋势</th><th>支撑 — 压力</th>${th("rr", "盈亏比 回踩 / 追入", "r")}<th>行动指令</th></tr></thead><tbody>
       ${list.map(s => `<tr onclick="openDrawer('${s.code}')">
         <td><div class="font-semibold text-[13.5px]">${esc(s.name)}${staleTag(s)}</div><div class="mono text-[11px] text-i3 mt-0.5">${esc(s.code)} · ${({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type]}</div></td>
         <td class="r num font-medium">${fp(s.price)}</td>
@@ -572,7 +645,7 @@
         <td class="text-i2">${esc(s.trend || "—")}</td>
         <td>${rangeHtml(s)}</td>
         <td class="r">${rrHtml(s.plan)}</td>
-        <td>${verChip(s, true) || `<span class="text-i3">—</span>`}</td></tr>`).join("")}</tbody></table>`;
+        <td>${actChip(s, true)}</td></tr>`).join("")}</tbody></table>`;
 
     document.getElementById("list-mobile").innerHTML = list.map(s => `
       <button onclick="openDrawer('${s.code}')" class="tap card w-full text-left p-3.5 fade-in block">
@@ -580,7 +653,8 @@
           <div class="min-w-0"><div class="font-semibold text-[15px] leading-tight">${esc(s.name)}${staleTag(s)}</div><div class="mono text-[11px] text-i3 mt-1">${esc(s.code)} · ${({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type]}</div></div>
           <div class="text-right shrink-0"><div class="num text-[16px] font-semibold leading-tight">${fp(s.price)}</div><div class="num text-[12px] mt-1 font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></div>
         </div>
-        <div class="flex flex-wrap items-center gap-1.5 mt-3">${advChip(s.advice)}${verChip(s, true)}${s.score != null ? `<span class="chip" style="--c:var(--ink-2)">评分 <span class="num">${s.score}</span></span>` : ""}</div>
+        <div class="flex flex-wrap items-center gap-1.5 mt-3">${advChip(s.advice)}${actChip(s, false)}${s.score != null ? `<span class="chip" style="--c:var(--ink-2)">评分 <span class="num">${s.score}</span></span>` : ""}</div>
+        ${(() => { const a = actionPlan(s); return a ? `<div class="text-[12.5px] mt-3 num" style="color:${a.color}">${esc(a.short)}</div>` : ""; })()}
         <div class="grid grid-cols-2 gap-3 mt-3">
           <div class="tray p-2.5"><div class="lbl mb-2">支撑 — 压力</div>${rangeHtml(s, "w-full")}</div>
           <div class="tray p-2.5"><div class="lbl mb-1.5">盈亏比 回踩 / 追入</div><div class="text-[15px]">${rrHtml(s.plan)}</div></div>
@@ -624,6 +698,7 @@
           <div class="flex flex-col items-end gap-1.5">${s.disc ? `<div class="flex flex-wrap gap-1.5 justify-end">${s.disc.hits.map(h => `<span class="chip" style="--c:var(--a-buy)">${esc(h)}</span>`).join("")}</div>` : advChip(s.advice)}${s.score != null ? `<div class="flex items-center gap-2"><span class="lbl">评分</span><span class="num font-semibold text-[15px]">${s.score}</span></div>` : ""}</div>
         </div>
       </div>
+      ${actionCard(s)}
       ${s.one ? sec(s.disc ? "入选理由" : "一句话决策", `<div class="tray p-3.5 text-[13.5px] leading-relaxed">${esc(s.one)}</div>`) : ""}
       ${sec(`交易计划${p ? ` · <span class="normal-case tracking-normal" style="color:var(--ink-3)">${p.src === "ATR" ? "ATR 波动率法" : "均线法（旧）"}</span>` : ""}`, `
         ${p ? `<div class="flex flex-wrap gap-2 mb-3">${verChip(s, false)}${Number.isFinite(p.atr) ? `<span class="chip" style="--c:var(--ink-2)">ATR14 ${fp(p.atr, s.price)}（${p.atrPct.toFixed(1)}%）</span>` : ""}</div>` : ""}
@@ -648,10 +723,10 @@
         <div id="full-md" class="hidden prose-md mt-4">${md(s.raw)}</div>
         <div class="text-[11px] text-i3 mt-4 text-center mono">分析时间 ${fmtTs(s.ts)}</div>
       </section>`;
-    const d = document.getElementById("drawer"); d.classList.add("open"); d.setAttribute("aria-hidden", "false");
+    state.openCode = code; const d = document.getElementById("drawer"); d.classList.add("open"); d.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden"; document.getElementById("drawer-body").scrollTop = 0;
   }
-  function closeDrawer() { const d = document.getElementById("drawer"); d.classList.remove("open"); d.setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
+  function closeDrawer() { state.openCode = null; const d = document.getElementById("drawer"); d.classList.remove("open"); d.setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
 
   /* ---------- Discover ---------- */
@@ -671,7 +746,8 @@
           <div class="min-w-0"><div class="font-semibold text-[15px] leading-tight">${esc(s.name)}</div><div class="mono text-[11px] text-i3 mt-1">${esc(s.code)} · ${esc(s.disc.industry || "—")}</div></div>
           <div class="text-right shrink-0"><div class="num text-[16px] font-semibold leading-tight">${fp(s.price)}</div><div class="num text-[12px] mt-1 font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></div>
         </div>
-        <div class="flex flex-wrap gap-1.5 mt-3">${s.disc.hits.map(h => `<span class="chip" style="--c:var(--a-buy)">${esc(h)}</span>`).join("")}${verChip(s, true)}</div>
+        <div class="flex flex-wrap gap-1.5 mt-3">${s.disc.hits.map(h => `<span class="chip" style="--c:var(--a-buy)">${esc(h)}</span>`).join("")}${actChip(s, false)}</div>
+        ${(() => { const a = actionPlan(s); return a ? `<div class="text-[12.5px] mt-2.5 num" style="color:${a.color}">${esc(a.short)}</div>` : ""; })()}
         <div class="text-[12.5px] leading-relaxed text-i2 mt-3">${esc(s.one)}</div>
         <div class="grid grid-cols-3 gap-2 mt-3">
           <div class="tray p-2.5"><div class="lbl">评分</div><div class="num text-[15px] font-semibold mt-1">${Number.isFinite(s.score) ? s.score.toFixed(1) : "—"}</div></div>
