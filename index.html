@@ -73,14 +73,14 @@
     .scroll-x { overflow-x:auto; scrollbar-width:none; } .scroll-x::-webkit-scrollbar { display:none; }
 
     /* table */
-    table.grid { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
-    table.grid th { position:sticky; top:0; z-index:2; background: var(--bg-1); text-align:left; padding:10px 12px; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color: var(--ink-3); font-weight:500; border-bottom:1px solid var(--line); white-space:nowrap; user-select:none; }
-    table.grid th.sort { cursor:pointer; } table.grid th.sort:hover { color: var(--ink-1); }
-    table.grid th.r, table.grid td.r { text-align:right; }
-    table.grid td { padding:12px; border-bottom:1px solid var(--line); vertical-align:middle; white-space:nowrap; }
-    table.grid tbody tr { cursor:pointer; transition: background .2s var(--ease); }
-    table.grid tbody tr:hover td { background: var(--bg-2); }
-    table.grid tbody tr:last-child td { border-bottom:none; }
+    table.dtable { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
+    table.dtable th { position:sticky; top:0; z-index:2; background: var(--bg-1); text-align:left; padding:10px 12px; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color: var(--ink-3); font-weight:500; border-bottom:1px solid var(--line); white-space:nowrap; user-select:none; }
+    table.dtable th.sort { cursor:pointer; } table.dtable th.sort:hover { color: var(--ink-1); }
+    table.dtable th.r, table.dtable td.r { text-align:right; }
+    table.dtable td { padding:12px; border-bottom:1px solid var(--line); vertical-align:middle; white-space:nowrap; }
+    table.dtable tbody tr { cursor:pointer; transition: background .2s var(--ease); }
+    table.dtable tbody tr:hover td { background: var(--bg-2); }
+    table.dtable tbody tr:last-child td { border-bottom:none; }
 
     /* gauges */
     .bar { height:6px; border-radius:99px; background: var(--bg-3); position:relative; overflow:hidden; }
@@ -515,7 +515,7 @@
     }
 
     const th = (k, label, cls = "") => `<th class="sort ${cls}" onclick="setSort('${k}')">${label}${state.sort === k ? `<i class="ph-bold ${state.dir < 0 ? "ph-caret-down" : "ph-caret-up"} ml-1"></i>` : ""}</th>`;
-    document.getElementById("table-wrap").innerHTML = `<table class="grid" style="min-width:940px"><thead><tr>
+    document.getElementById("table-wrap").innerHTML = `<table class="dtable" style="min-width:940px"><thead><tr>
       ${th("name", "标的")}${th("price", "现价", "r")}${th("chg", "涨跌", "r")}${th("score", "评分", "r")}${th("adv", "操作建议")}<th>趋势</th><th>支撑 — 压力</th>${th("rr", "盈亏比 回踩 / 追入", "r")}<th>风控结论</th></tr></thead><tbody>
       ${list.map(s => `<tr onclick="openDrawer('${s.code}')">
         <td><div class="font-semibold text-[13.5px]">${esc(s.name)}</div><div class="mono text-[11px] text-i3 mt-0.5">${esc(s.code)} · ${({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type]}</div></td>
@@ -646,7 +646,13 @@
     document.getElementById("theme-icon").className = "ph " + (dark ? "ph-sun-dim" : "ph-moon") + " text-[17px]";
     document.querySelector('meta[name="theme-color"]').content = dark ? "#000000" : "#F5F5F2";
   }
-  function renderAll() { renderDesk(); renderMarket(); renderRadar(); }
+  function renderAll() {
+    renderDesk(); renderMarket(); renderRadar();
+    if (!state.hashDone && location.hash.length > 1 && state.stocks.length) {
+      state.hashDone = true;
+      const c = decodeURIComponent(location.hash.slice(1)); if (state.stocks.some(s => s.code === c)) openDrawer(c);
+    }
+  }
 
   (function init() {
     if (localStorage.getItem("511-theme") === "light") { document.documentElement.classList.remove("dark"); document.getElementById("theme-icon").className = "ph ph-moon text-[17px]"; }
