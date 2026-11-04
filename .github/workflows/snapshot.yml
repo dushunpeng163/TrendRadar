@@ -1,0 +1,52 @@
+name: Snapshot ntfy to repo
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+      - name: Merge ntfy messages into snapshot.json
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request
+          topic = "trendradar-mac-511"
+          url = f"https://ntfy.sh/{topic}/json?poll=1&since=all"
+          raw = urllib.request.urlopen(url, timeout=60).read().decode("utf-8")
+          new = [json.loads(l) for l in raw.splitlines() if l.strip()]
+          new = [m for m in new if m.get("event") == "message"]
+          old = []
+          if os.path.exists("snapshot.json"):
+              try:
+                  old = json.load(open("snapshot.json", encoding="utf-8"))
+              except Exception:
+                  old = []
+          merged = {m["id"]: m for m in old if "id" in m}
+          for m in new:
+              merged[m["id"]] = {k: m.get(k) for k in ("id", "time", "event", "title", "message")}
+          cutoff = time.time() - 3 * 86400
+          out = sorted((m for m in merged.values() if m.get("time", 0) >= cutoff), key=lambda m: m["time"])
+          json.dump(out, open("snapshot.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+          print(f"new={len(new)} total={len(out)}")
+          PY
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add snapshot.json
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "chore: update ntfy snapshot [skip ci]"
+          git push
