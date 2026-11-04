@@ -331,11 +331,16 @@
     });
     const list = [];
     Object.entries(byCode).forEach(([ukey, chunks]) => {
-      const latest = Math.max(...chunks.map(c => c.time));
-      const run = chunks.filter(c => c.time >= latest - 900);
-      const pick = {};
-      run.forEach(c => { if (!pick[c.n] || c.time > pick[c.n].time) pick[c.n] = c; });
-      const ordered = Object.values(pick).sort((a, b) => a.n - b.n);
+      // split into runs (gap > 15min), prefer the newest run that has every part
+      chunks.sort((a, b) => b.time - a.time);
+      const runs = []; let curRun = [];
+      chunks.forEach(c => { if (curRun.length && curRun[curRun.length - 1].time - c.time > 900) { runs.push(curRun); curRun = []; } curRun.push(c); });
+      if (curRun.length) runs.push(curRun);
+      const build = r => { const pk = {}; r.forEach(c => { if (!pk[c.n] || c.time > pk[c.n].time) pk[c.n] = c; }); return Object.values(pk).sort((a, b) => a.n - b.n); };
+      const complete = r => { const o = build(r); const m = Math.max(...o.map(c => c.mm)); return o.length >= m && o[0].n === 1; };
+      const chosen = runs.find(complete) || runs[0];
+      const ordered = build(chosen);
+      const latest = Math.max(...ordered.map(c => c.time));
       const sec = ordered.map(c => c.msg).join("\n");
       const head = ordered[0];
       const sm = summary[ukey] || {};
@@ -366,7 +371,7 @@
         raw: sec, ts: latest,
       });
     });
-    return list;
+    return list.filter(s => Number.isFinite(s.price) && s.price > 0);
   }
 
   function parseMarket(messages) {
@@ -455,8 +460,15 @@
     const f = v => (Number.isFinite(v) ? v.toFixed(1) : "—");
     return `<span class="num text-[12.5px]"><span style="color:${c(plan.rrEntry)}">${f(plan.rrEntry)}</span><span class="text-i3 mx-1">/</span><span style="color:${c(plan.rrNow)}">${f(plan.rrNow)}</span></span>`;
   }
+  function effVerdict(s) {
+    const p = s.plan; if (!p) return null;
+    if (s.advice === "REDUCE" && p.verdict !== "skip") return { code: "skip", text: "信号偏空，不建议入场" };
+    if (s.advice === "WATCH" && (p.verdict === "ok" || p.verdict === "wait")) return { code: "weak", text: "盈亏比尚可，但信号未确认，先观望" };
+    return { code: p.verdict, text: p.verdictText };
+  }
+  const staleTag = s => (state.asOf && s.ts < state.asOf - 3 * 3600) ? `<span class="chip ml-1.5" style="--c:var(--ink-3)">旧 ${fmtTs(s.ts)}</span>` : "";
   const advChip = k => `<span class="chip" style="--c:${ADV[k].color}"><i class="ph-bold ${ADV[k].icon}"></i>${ADV[k].short}</span>`;
-  const verChip = (p, compact) => !p ? "" : `<span class="chip" style="--c:${VERDICT[p.verdict].c}"><i class="ph-bold ${VERDICT[p.verdict].i}"></i>${compact ? VERDICT[p.verdict].t : esc(p.verdictText)}</span>`;
+  const verChip = (s, compact) => { const v = effVerdict(s); return !v ? "" : `<span class="chip" style="--c:${VERDICT[v.code].c}"><i class="ph-bold ${VERDICT[v.code].i}"></i>${compact ? VERDICT[v.code].t : esc(v.text)}</span>`; };
   function rangeHtml(s, w = "w-28") {
     if (![s.support, s.resistance, s.price].every(Number.isFinite) || s.resistance <= s.support) return `<span class="text-i3">—</span>`;
     const p = Math.max(0, Math.min(100, ((s.price - s.support) / (s.resistance - s.support)) * 100));
@@ -477,7 +489,7 @@
   function renderKpis(list) {
     const n = list.length, cnt = k => list.filter(s => s.advice === k).length;
     const avg = n ? Math.round(list.filter(s => s.score != null).reduce((a, s) => a + s.score, 0) / Math.max(1, list.filter(s => s.score != null).length)) : null;
-    const ok = list.filter(s => s.plan?.verdict === "ok").length, wait = list.filter(s => s.plan?.verdict === "wait").length;
+    const ok = list.filter(s => effVerdict(s)?.code === "ok").length, wait = list.filter(s => effVerdict(s)?.code === "wait").length;
     const mk = state.market;
     const kpi = (label, value, sub, extra = "") => `<div class="card p-4 fade-in"><div class="lbl">${label}</div><div class="num text-[28px] leading-none font-semibold mt-2.5 ${extra}">${value}</div><div class="text-[12px] text-i2 mt-2 leading-snug">${sub}</div></div>`;
     document.getElementById("kpis").innerHTML =
@@ -518,7 +530,7 @@
     document.getElementById("table-wrap").innerHTML = `<table class="dtable" style="min-width:940px"><thead><tr>
       ${th("name", "标的")}${th("price", "现价", "r")}${th("chg", "涨跌", "r")}${th("score", "评分", "r")}${th("adv", "操作建议")}<th>趋势</th><th>支撑 — 压力</th>${th("rr", "盈亏比 回踩 / 追入", "r")}<th>风控结论</th></tr></thead><tbody>
       ${list.map(s => `<tr onclick="openDrawer('${s.code}')">
-        <td><div class="font-semibold text-[13.5px]">${esc(s.name)}</div><div class="mono text-[11px] text-i3 mt-0.5">${esc(s.code)} · ${({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type]}</div></td>
+        <td><div class="font-semibold text-[13.5px]">${esc(s.name)}${staleTag(s)}</div><div class="mono text-[11px] text-i3 mt-0.5">${esc(s.code)} · ${({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type]}</div></td>
         <td class="r num font-medium">${fp(s.price)}</td>
         <td class="r num font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</td>
         <td class="r">${scoreHtml(s)}</td>
@@ -526,15 +538,15 @@
         <td class="text-i2">${esc(s.trend || "—")}</td>
         <td>${rangeHtml(s)}</td>
         <td class="r">${rrHtml(s.plan)}</td>
-        <td>${verChip(s.plan, true) || `<span class="text-i3">—</span>`}</td></tr>`).join("")}</tbody></table>`;
+        <td>${verChip(s, true) || `<span class="text-i3">—</span>`}</td></tr>`).join("")}</tbody></table>`;
 
     document.getElementById("list-mobile").innerHTML = list.map(s => `
       <button onclick="openDrawer('${s.code}')" class="tap card w-full text-left p-3.5 fade-in block">
         <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0"><div class="font-semibold text-[15px] leading-tight">${esc(s.name)}</div><div class="mono text-[11px] text-i3 mt-1">${esc(s.code)} · ${({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type]}</div></div>
+          <div class="min-w-0"><div class="font-semibold text-[15px] leading-tight">${esc(s.name)}${staleTag(s)}</div><div class="mono text-[11px] text-i3 mt-1">${esc(s.code)} · ${({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type]}</div></div>
           <div class="text-right shrink-0"><div class="num text-[16px] font-semibold leading-tight">${fp(s.price)}</div><div class="num text-[12px] mt-1 font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></div>
         </div>
-        <div class="flex flex-wrap items-center gap-1.5 mt-3">${advChip(s.advice)}${verChip(s.plan, true)}${s.score != null ? `<span class="chip" style="--c:var(--ink-2)">评分 <span class="num">${s.score}</span></span>` : ""}</div>
+        <div class="flex flex-wrap items-center gap-1.5 mt-3">${advChip(s.advice)}${verChip(s, true)}${s.score != null ? `<span class="chip" style="--c:var(--ink-2)">评分 <span class="num">${s.score}</span></span>` : ""}</div>
         <div class="grid grid-cols-2 gap-3 mt-3">
           <div class="tray p-2.5"><div class="lbl mb-2">支撑 — 压力</div>${rangeHtml(s, "w-full")}</div>
           <div class="tray p-2.5"><div class="lbl mb-1.5">盈亏比 回踩 / 追入</div><div class="text-[15px]">${rrHtml(s.plan)}</div></div>
@@ -580,7 +592,7 @@
       </div>
       ${s.one ? sec("一句话决策", `<div class="tray p-3.5 text-[13.5px] leading-relaxed">${esc(s.one)}</div>`) : ""}
       ${sec(`交易计划${p ? ` · <span class="normal-case tracking-normal" style="color:var(--ink-3)">${p.src === "ATR" ? "ATR 波动率法" : "均线法（旧）"}</span>` : ""}`, `
-        ${p ? `<div class="flex flex-wrap gap-2 mb-3">${verChip(p, false)}${Number.isFinite(p.atr) ? `<span class="chip" style="--c:var(--ink-2)">ATR14 ${fp(p.atr, s.price)}（${p.atrPct.toFixed(1)}%）</span>` : ""}</div>` : ""}
+        ${p ? `<div class="flex flex-wrap gap-2 mb-3">${verChip(s, false)}${Number.isFinite(p.atr) ? `<span class="chip" style="--c:var(--ink-2)">ATR14 ${fp(p.atr, s.price)}（${p.atrPct.toFixed(1)}%）</span>` : ""}</div>` : ""}
         ${rulerHtml(s)}
         <div class="mt-3">${planTable(s)}</div>
         ${p ? `<div class="grid grid-cols-2 gap-2 mt-2.5">
