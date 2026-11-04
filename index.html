@@ -209,7 +209,7 @@
 <script>
   /* ================= Config & state ================= */
   const TOPIC = "trendradar-mac-511";
-  const CACHE_KEY = "511-cache-v3";
+  const CACHE_KEY = "511-cache-v4";
   const ADV = {
     BUY:    { label: "买入 / 加仓", short: "买入", color: "var(--a-buy)",    icon: "ph-arrow-fat-line-up" },
     HOLD:   { label: "持有",       short: "持有", color: "var(--a-hold)",   icon: "ph-hand-grabbing" },
@@ -430,7 +430,7 @@
     return touched;
   }
   function loadCache() {
-    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c) { Object.assign(state, { stocks: c.stocks || [], market: c.market || null, radar: c.radar || [], radarTs: c.radarTs, asOf: c.asOf || 0 }); return true; } } catch (e) {}
+    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c) { Object.assign(state, { stocks: (c.stocks || []).filter(s => Number.isFinite(s.price) && s.price > 0), market: c.market || null, radar: c.radar || [], radarTs: c.radarTs, asOf: c.asOf || 0 }); return true; } } catch (e) {}
     return false;
   }
   async function loadAll(manual) {
