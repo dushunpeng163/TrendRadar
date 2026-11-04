@@ -802,6 +802,8 @@ def send_to_ntfy(
         "Title": report_type_en,
         "Priority": "default",
         "Tags": "news",
+        # 点击通知直接打开看板的情报雷达页
+        "Click": "https://dushunpeng163.github.io/TrendRadar/#radar",
     }
 
     if token:
