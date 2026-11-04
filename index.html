@@ -157,6 +157,7 @@
     <!-- top nav -->
     <nav class="seg scroll-x mb-4 w-full md:w-fit" id="nav">
       <button data-v="desk" class="on" onclick="setView('desk')"><i class="ph ph-squares-four"></i>决策看板</button>
+      <button data-v="discover" onclick="setView('discover')"><i class="ph ph-compass"></i>选股发现</button>
       <button data-v="market" onclick="setView('market')"><i class="ph ph-globe-hemisphere-east"></i>大盘复盘</button>
       <button data-v="radar" onclick="setView('radar')"><i class="ph ph-radar"></i>情报雷达</button>
     </nav>
@@ -187,6 +188,16 @@
       <p class="text-[11px] text-i3 leading-relaxed px-1">涨红跌绿。点位由代码按 ATR14 波动率计算（止损 = 入场 − 2×ATR，目标 = 1R/2R/3R），并按上方压力位封顶；仅作研究参考，不构成投资建议。</p>
     </section>
 
+    <!-- DISCOVER -->
+    <section id="view-discover" class="hidden space-y-4">
+      <div class="card p-4 flex items-start gap-3">
+        <div class="w-9 h-9 rounded-[11px] bg-s2 flex items-center justify-center shrink-0"><i class="ph-bold ph-compass text-[18px]"></i></div>
+        <div class="min-w-0"><div class="text-[14px] font-semibold">全市场量化初筛 · 已排除你的自选</div><div id="disc-meta" class="text-[12px] text-i2 mt-1 leading-relaxed">在仓库 Actions 里运行「选股发现」后，这里会出现候选。</div></div>
+      </div>
+      <div class="seg scroll-x" id="disc-tabs"></div>
+      <div id="disc-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+    </section>
+
     <!-- MARKET -->
     <section id="view-market" class="hidden space-y-4"></section>
 
@@ -209,7 +220,7 @@
 <script>
   /* ================= Config & state ================= */
   const TOPIC = "trendradar-mac-511";
-  const CACHE_KEY = "511-cache-v4";
+  const CACHE_KEY = "511-cache-v5";
   const ADV = {
     BUY:    { label: "买入 / 加仓", short: "买入", color: "var(--a-buy)",    icon: "ph-arrow-fat-line-up" },
     HOLD:   { label: "持有",       short: "持有", color: "var(--a-hold)",   icon: "ph-hand-grabbing" },
@@ -223,7 +234,7 @@
     weak: { t: "仅限小仓",   c: "var(--weak)", i: "ph-warning" },
     skip: { t: "不值得出手", c: "var(--skip)", i: "ph-prohibit" },
   };
-  const state = { view: "desk", adv: "ALL", type: "ALL", q: "", sort: "score", dir: -1, stocks: [], market: null, radar: [], asOf: 0, radarId: "ALL" };
+  const state = { view: "desk", adv: "ALL", type: "ALL", q: "", sort: "score", dir: -1, stocks: [], discover: [], discFilter: "ALL", market: null, radar: [], asOf: 0, radarId: "ALL" };
 
   /* ================= Helpers ================= */
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -374,6 +385,28 @@
     return list.filter(s => Number.isFinite(s.price) && s.price > 0);
   }
 
+  function parseDiscover(messages) {
+    const cards = messages.map(x => ({ x, m: (x.title || "").match(/^🔎\s*(.+?)\s*\(([A-Za-z0-9.]+)\)\s*$/u) })).filter(o => o.m);
+    if (!cards.length) return null;
+    const latest = Math.max(...cards.map(o => o.x.time));
+    const seen = {};
+    cards.filter(o => o.x.time >= latest - 1800).forEach(o => { const c = o.m[2].toUpperCase(); if (!seen[c] || o.x.time > seen[c].x.time) seen[c] = o; });
+    const list = Object.values(seen).map(o => {
+      const sec = o.x.message || "", tables = getTables(sec), name = o.m[1].trim(), code = o.m[2];
+      const price = parseFloat(grab(sec, /现价\*\*[:：]\s*([\d.]+)/));
+      const hits = grab(sec, /命中策略\*\*[:：]\s*([^\n]+)/).split("·").map(t => t.trim()).filter(Boolean);
+      const plan = buildPlan(sec, tables, price, NaN, NaN);
+      return {
+        code, name, type: typeOf(code, name), advice: "NEW", price, chg: parseFloat(grab(sec, /涨跌\*\*[:：]\s*([+-]?[\d.]+)%/)),
+        score: parseFloat(grab(sec, /综合评分\*\*[:：]\s*([\d.]+)/)), plan, one: grab(sec, /入选理由\*\*[:：]\s*([^\n]+)/),
+        risks: [grab(sec, /风险提示\*\*[:：]\s*([^\n]+)/)].filter(t => t && t !== "—"), boosts: [], week: "", month: "", flat: {}, position: "",
+        support: NaN, resistance: NaN, trend: "", raw: sec, ts: o.x.time,
+        disc: { hits, industry: grab(sec, /行业\*\*[:：]\s*([^\n]+)/), pe: grab(sec, /PE\*\*[:：]\s*([^|\n]+)/), pb: grab(sec, /PB\*\*[:：]\s*([^|\n]+)/), mv: grab(sec, /市值亿\*\*[:：]\s*([^|\n]+)/) },
+      };
+    });
+    return { list, ts: latest };
+  }
+
   function parseMarket(messages) {
     const cards = messages.map(x => ({ x, m: (x.title || "").match(/^📈\s*(.*大盘复盘.*?)\s*\((\d+)\/(\d+)\)\s*$/) })).filter(o => o.m);
     if (!cards.length) return null;
@@ -422,15 +455,16 @@
     let touched = false;
     const stocks = parseStocks(messages);
     if (stocks.length) { state.stocks = stocks; state.asOf = Math.max(...stocks.map(s => s.ts)); touched = true; }
+    const ds = parseDiscover(messages); if (ds) { state.discover = ds.list; state.discTs = ds.ts; touched = true; }
     const mk = parseMarket(messages); if (mk) { state.market = mk; touched = true; }
     const rd = parseRadar(messages); if (rd) { state.radar = rd.domains; state.radarTs = rd.ts; touched = true; }
     if (touched && persist) {
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ stocks: state.stocks, market: state.market, radar: state.radar, radarTs: state.radarTs, asOf: state.asOf })); } catch (e) {}
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ stocks: state.stocks, discover: state.discover, discTs: state.discTs, market: state.market, radar: state.radar, radarTs: state.radarTs, asOf: state.asOf })); } catch (e) {}
     }
     return touched;
   }
   function loadCache() {
-    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c) { Object.assign(state, { stocks: (c.stocks || []).filter(s => Number.isFinite(s.price) && s.price > 0), market: c.market || null, radar: c.radar || [], radarTs: c.radarTs, asOf: c.asOf || 0 }); return true; } } catch (e) {}
+    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c) { Object.assign(state, { discover: c.discover || [], discTs: c.discTs, stocks: (c.stocks || []).filter(s => Number.isFinite(s.price) && s.price > 0), market: c.market || null, radar: c.radar || [], radarTs: c.radarTs, asOf: c.asOf || 0 }); return true; } } catch (e) {}
     return false;
   }
   async function loadAll(manual) {
@@ -577,7 +611,7 @@
     }).join("")}</div>`;
   }
   function openDrawer(code) {
-    const s = state.stocks.find(x => x.code === code); if (!s) return;
+    const s = state.stocks.find(x => x.code === code) || state.discover.find(x => x.code === code); if (!s) return;
     const p = s.plan, sec = (t, body) => `<section class="px-5 pt-5"><div class="lbl mb-2.5">${t}</div>${body}</section>`;
     document.getElementById("drawer-body").innerHTML = `
       <div class="px-5 pt-4 pb-4 sticky top-0 z-10" style="background:var(--bg-0);border-bottom:1px solid var(--line)">
@@ -587,10 +621,10 @@
         </div>
         <div class="flex items-end justify-between mt-4">
           <div><div class="num text-[32px] leading-none font-semibold">${fp(s.price)}</div><div class="num text-[13px] mt-2 font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></div>
-          <div class="flex flex-col items-end gap-1.5">${advChip(s.advice)}${s.score != null ? `<div class="flex items-center gap-2"><span class="lbl">评分</span><span class="num font-semibold text-[15px]">${s.score}</span></div>` : ""}</div>
+          <div class="flex flex-col items-end gap-1.5">${s.disc ? `<div class="flex flex-wrap gap-1.5 justify-end">${s.disc.hits.map(h => `<span class="chip" style="--c:var(--a-buy)">${esc(h)}</span>`).join("")}</div>` : advChip(s.advice)}${s.score != null ? `<div class="flex items-center gap-2"><span class="lbl">评分</span><span class="num font-semibold text-[15px]">${s.score}</span></div>` : ""}</div>
         </div>
       </div>
-      ${s.one ? sec("一句话决策", `<div class="tray p-3.5 text-[13.5px] leading-relaxed">${esc(s.one)}</div>`) : ""}
+      ${s.one ? sec(s.disc ? "入选理由" : "一句话决策", `<div class="tray p-3.5 text-[13.5px] leading-relaxed">${esc(s.one)}</div>`) : ""}
       ${sec(`交易计划${p ? ` · <span class="normal-case tracking-normal" style="color:var(--ink-3)">${p.src === "ATR" ? "ATR 波动率法" : "均线法（旧）"}</span>` : ""}`, `
         ${p ? `<div class="flex flex-wrap gap-2 mb-3">${verChip(s, false)}${Number.isFinite(p.atr) ? `<span class="chip" style="--c:var(--ink-2)">ATR14 ${fp(p.atr, s.price)}（${p.atrPct.toFixed(1)}%）</span>` : ""}</div>` : ""}
         ${rulerHtml(s)}
@@ -619,6 +653,33 @@
   }
   function closeDrawer() { const d = document.getElementById("drawer"); d.classList.remove("open"); d.setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
+
+  /* ---------- Discover ---------- */
+  function renderDiscover() {
+    const all = state.discover, meta = document.getElementById("disc-meta"), tabs = document.getElementById("disc-tabs"), box = document.getElementById("disc-list");
+    if (!all.length) { tabs.innerHTML = ""; box.innerHTML = `<div class="card p-8 text-center text-i2 text-[13px] md:col-span-2 lg:col-span-3"><i class="ph ph-compass text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">还没有选股结果</div><div class="mt-1 leading-relaxed">到 DSA 仓库的 Actions 里运行「选股发现」，约 10 分钟后候选会出现在这里。</div></div>`; return; }
+    const strategies = [...new Set(all.flatMap(s => s.disc.hits))];
+    meta.textContent = `${fmtTs(state.discTs)} · ${all.length} 只候选 · 策略：${strategies.join("、")} · 点位同样按 ATR 计算`;
+    const f = state.discFilter;
+    const good = s => ["ok", "wait"].includes(s.plan?.verdict);
+    const defs = [["ALL", "全部", all.length], ["MULTI", "命中 ≥ 2 套", all.filter(s => s.disc.hits.length >= 2).length], ["GOOD", "盈亏比可用", all.filter(good).length]];
+    tabs.innerHTML = defs.map(([k, l, n]) => `<button class="${f === k ? "on" : ""} ${n === 0 && k !== "ALL" ? "zero" : ""}" onclick="state.discFilter='${k}';renderDiscover()">${l}<span class="n">${n}</span></button>`).join("");
+    const list = all.filter(s => f === "ALL" || (f === "MULTI" ? s.disc.hits.length >= 2 : good(s)));
+    box.innerHTML = list.length ? list.map(s => `
+      <button onclick="openDrawer('${s.code}')" class="tap card text-left p-4 block fade-in">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0"><div class="font-semibold text-[15px] leading-tight">${esc(s.name)}</div><div class="mono text-[11px] text-i3 mt-1">${esc(s.code)} · ${esc(s.disc.industry || "—")}</div></div>
+          <div class="text-right shrink-0"><div class="num text-[16px] font-semibold leading-tight">${fp(s.price)}</div><div class="num text-[12px] mt-1 font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></div>
+        </div>
+        <div class="flex flex-wrap gap-1.5 mt-3">${s.disc.hits.map(h => `<span class="chip" style="--c:var(--a-buy)">${esc(h)}</span>`).join("")}${verChip(s, true)}</div>
+        <div class="text-[12.5px] leading-relaxed text-i2 mt-3">${esc(s.one)}</div>
+        <div class="grid grid-cols-3 gap-2 mt-3">
+          <div class="tray p-2.5"><div class="lbl">评分</div><div class="num text-[15px] font-semibold mt-1">${Number.isFinite(s.score) ? s.score.toFixed(1) : "—"}</div></div>
+          <div class="tray p-2.5"><div class="lbl">PE</div><div class="num text-[15px] font-semibold mt-1">${esc(s.disc.pe || "—")}</div></div>
+          <div class="tray p-2.5"><div class="lbl">盈亏比</div><div class="mt-1 text-[15px]">${rrHtml(s.plan)}</div></div>
+        </div>
+      </button>`).join("") : `<div class="card p-8 text-center text-i2 text-[13px] md:col-span-2 lg:col-span-3">该筛选下暂无候选</div>`;
+  }
 
   /* ---------- Market ---------- */
   function renderMarket() {
@@ -649,7 +710,7 @@
   function setView(v) {
     state.view = v;
     document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
-    ["desk", "market", "radar"].forEach(k => document.getElementById("view-" + k).classList.toggle("hidden", k !== v));
+    ["desk", "discover", "market", "radar"].forEach(k => document.getElementById("view-" + k).classList.toggle("hidden", k !== v));
     window.scrollTo({ top: 0 });
   }
   function toggleTheme() {
@@ -659,10 +720,10 @@
     document.querySelector('meta[name="theme-color"]').content = dark ? "#000000" : "#F5F5F2";
   }
   function renderAll() {
-    renderDesk(); renderMarket(); renderRadar();
+    renderDesk(); renderDiscover(); renderMarket(); renderRadar();
     if (!state.hashDone && location.hash.length > 1) {
       const c = decodeURIComponent(location.hash.slice(1));
-      if (c === "market" || c === "radar") { state.hashDone = true; setView(c); }
+      if (c === "market" || c === "radar" || c === "discover") { state.hashDone = true; setView(c); }
       else if (state.stocks.length) { state.hashDone = true; if (state.stocks.some(s => s.code === c)) openDrawer(c); }
     }
   }
