@@ -648,9 +648,10 @@
   }
   function renderAll() {
     renderDesk(); renderMarket(); renderRadar();
-    if (!state.hashDone && location.hash.length > 1 && state.stocks.length) {
-      state.hashDone = true;
-      const c = decodeURIComponent(location.hash.slice(1)); if (state.stocks.some(s => s.code === c)) openDrawer(c);
+    if (!state.hashDone && location.hash.length > 1) {
+      const c = decodeURIComponent(location.hash.slice(1));
+      if (c === "market" || c === "radar") { state.hashDone = true; setView(c); }
+      else if (state.stocks.length) { state.hashDone = true; if (state.stocks.some(s => s.code === c)) openDrawer(c); }
     }
   }
 
