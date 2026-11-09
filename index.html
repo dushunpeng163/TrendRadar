@@ -165,6 +165,7 @@
 
     <!-- DESK -->
     <section id="view-desk" class="space-y-4">
+      <div id="quant-banner" class="card p-4 hidden"></div>
       <div id="src-banner" class="card p-4 hidden"></div>
       <div id="kpis" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
       <div id="dist" class="card p-4"></div>
@@ -212,7 +213,7 @@
 <script>
   /* ================= Config & state ================= */
   const TOPIC = "trendradar-mac-511";
-  const CACHE_KEY = "511-cache-v11";
+  const CACHE_KEY = "511-cache-v12";
   const ADV = {
     BUY:    { label: "买入 / 加仓", short: "买入", color: "var(--a-buy)",    icon: "ph-arrow-fat-line-up" },
     HOLD:   { label: "持有",       short: "持有", color: "var(--a-hold)",   icon: "ph-hand-grabbing" },
@@ -229,7 +230,7 @@
     skip:    { t: "不出手",     c: "var(--skip)",  i: "ph-prohibit" },
     na:      { t: "不适用",     c: "var(--ink-3)", i: "ph-minus-circle" },
   };
-  const state = { source: "watch", risk: parseFloat(localStorage.getItem("511-risk")) || 1, openCode: null, view: "desk", adv: "ALL", type: "ALL", q: "", sort: "score", dir: -1, stocks: [], discover: [], discFilter: "ALL", market: null, radar: [], asOf: 0, radarId: "ALL" };
+  const state = { source: "watch", risk: parseFloat(localStorage.getItem("511-risk")) || 1, openCode: null, view: "desk", adv: "ALL", type: "ALL", q: "", sort: "score", dir: -1, stocks: [], discover: [], discFilter: "ALL", market: null, radar: [], quant: null, asOf: 0, radarId: "ALL" };
 
   /* ================= Helpers ================= */
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -504,6 +505,19 @@
     return out.length ? { domains: out, ts: last.time } : null;
   }
 
+  function parseQuant(messages) {
+    const ms = messages.filter(x => /Qlib Top3 模型信号/.test(x.title || "")).sort((a, b) => a.time - b.time);
+    if (!ms.length) return null;
+    const last = ms[ms.length - 1], text = last.message || "", picks = [];
+    const re = /(\d+)\.\s+\*\*([A-Z]{2}\d{6})\*\*\s*·\s*score\s*([+-]?\d+(?:\.\d+)?)/g;
+    let m; while ((m = re.exec(text))) picks.push({ rank: +m[1], code: m[2], score: +m[3] });
+    return {
+      ts: last.time, date: grab(text, /Qlib Top3\s*·\s*([^\n]+)/),
+      validated: /已验证实盘候选/.test(text), gate: /样本外门禁：通过/.test(text),
+      failed: grab(text, /未通过项：([^\n]+)/), picks,
+    };
+  }
+
   /* ================= Data loading ================= */
   function ingest(messages, persist = true) {
     let touched = false;
@@ -512,13 +526,14 @@
     const ds = parseDiscover(messages); if (ds) { state.discover = ds.list; state.discTs = ds.ts; touched = true; }
     const mk = parseMarket(messages); if (mk) { state.market = mk; touched = true; }
     const rd = parseRadar(messages); if (rd) { state.radar = rd.domains; state.radarTs = rd.ts; touched = true; }
+    const qt = parseQuant(messages); if (qt) { state.quant = qt; touched = true; }
     if (touched && persist) {
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ stocks: state.stocks, discover: state.discover, discTs: state.discTs, market: state.market, radar: state.radar, radarTs: state.radarTs, asOf: state.asOf })); } catch (e) {}
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ stocks: state.stocks, discover: state.discover, discTs: state.discTs, market: state.market, radar: state.radar, radarTs: state.radarTs, quant: state.quant, asOf: state.asOf })); } catch (e) {}
     }
     return touched;
   }
   function loadCache() {
-    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c) { Object.assign(state, { discover: c.discover || [], discTs: c.discTs, stocks: (c.stocks || []).filter(s => Number.isFinite(s.price) && s.price > 0), market: c.market || null, radar: c.radar || [], radarTs: c.radarTs, asOf: c.asOf || 0 }); return true; } } catch (e) {}
+    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c) { Object.assign(state, { discover: c.discover || [], discTs: c.discTs, stocks: (c.stocks || []).filter(s => Number.isFinite(s.price) && s.price > 0), market: c.market || null, radar: c.radar || [], radarTs: c.radarTs, quant: c.quant || null, asOf: c.asOf || 0 }); return true; } } catch (e) {}
     return false;
   }
   async function loadAll(manual) {
@@ -745,8 +760,20 @@
       <div class="min-w-0"><div class="text-[14px] font-semibold">全市场量化初筛 · 已排除你的自选</div>
       <div class="text-[12px] text-i2 mt-1 leading-relaxed">${state.discover.length ? `${fmtTs(state.discTs)} · 策略：${esc(strategies.join("、"))} · 「买入」按 V2 可以出手归类 · 基本面过滤 · AI 复核 · 完整分析` : "运行「选股发现」后，候选会出现在这里。"}</div></div></div>`;
   }
+  function renderQuantBanner() {
+    const el = document.getElementById("quant-banner"), q = state.quant;
+    if (!q) { el.classList.add("hidden"); return; }
+    el.classList.remove("hidden");
+    const color = q.validated ? "var(--ok)" : "var(--wait)";
+    const picks = q.picks.map(p => `<span class="chip" style="--c:${color}">#${p.rank} ${esc(p.code)} <span class="mono">${p.score >= 0 ? "+" : ""}${p.score.toFixed(4)}</span></span>`).join(" ");
+    el.innerHTML = `<div class="flex items-start gap-3"><div class="w-9 h-9 rounded-[11px] bg-s2 flex items-center justify-center shrink-0"><i class="ph-bold ph-robot text-[18px]" style="color:${color}"></i></div>
+      <div class="min-w-0 flex-1"><div class="flex flex-wrap items-center gap-2"><div class="text-[14px] font-semibold">Qlib Alpha158 · LightGBM Top3</div><span class="chip" style="--c:${color}">${q.validated ? "已验证实盘候选" : "模拟观察"}</span></div>
+      <div class="text-[12px] text-i2 mt-1 leading-relaxed">${esc(q.date || fmtTs(q.ts))} · 样本外门禁${q.gate ? "通过" : "未通过"}${q.failed ? ` · 未通过：${esc(q.failed)}` : ""}${q.validated ? "" : " · 不映射为买入建议"}</div>
+      ${picks ? `<div class="flex flex-wrap gap-1.5 mt-2">${picks}</div>` : ""}</div></div>`;
+  }
   function renderDesk() {
     const base = visible();
+    renderQuantBanner();
     renderBanner();
     renderKpis(cur());
     renderTabs(base);
