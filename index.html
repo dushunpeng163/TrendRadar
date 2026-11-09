@@ -7,13 +7,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#000000" />
   <title>511 · 量化决策终端</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- 第三方资源全部本地化（assets/vendor），不依赖境外 CDN；Google Fonts 改为异步加载，不可达时不阻塞渲染 -->
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="./assets/vendor/phosphor/regular/style.css">
+  <link rel="stylesheet" href="./assets/vendor/phosphor/bold/style.css">
+  <script src="./assets/vendor/tailwind.js"></script>
+  <script src="./assets/vendor/marked.min.js"></script>
+  <script src="./assets/vendor/purify.min.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -617,7 +617,9 @@
     syncEl.textContent = "同步中…"; icon.classList.add("animate-spin");
     let liveOk = false;
     try {
-      const res = await fetch(`https://ntfy.sh/${TOPIC}/json?poll=1&since=all`, { cache: "no-store" });
+      // ntfy 在部分网络下会长时间无响应，8 秒内拿不到就放弃，转用本站 snapshot.json
+      const ac = new AbortController(); const timer = setTimeout(() => ac.abort(), 8000);
+      const res = await fetch(`https://ntfy.sh/${TOPIC}/json?poll=1&since=all`, { cache: "no-store", signal: ac.signal }).finally(() => clearTimeout(timer));
       const raw = await res.text();
       const messages = raw.trim().split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(x => x && x.event === "message");
       liveOk = ingest(messages);
