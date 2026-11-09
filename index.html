@@ -212,7 +212,7 @@
 <script>
   /* ================= Config & state ================= */
   const TOPIC = "trendradar-mac-511";
-  const CACHE_KEY = "511-cache-v10";
+  const CACHE_KEY = "511-cache-v11";
   const ADV = {
     BUY:    { label: "买入 / 加仓", short: "买入", color: "var(--a-buy)",    icon: "ph-arrow-fat-line-up" },
     HOLD:   { label: "持有",       short: "持有", color: "var(--a-hold)",   icon: "ph-hand-grabbing" },
@@ -863,7 +863,7 @@
             ${p.invalid ? `<div><span class="text-i3">失效条件</span> <span class="text-i2">${esc(p.invalid)}</span></div>` : ""}
             ${p.basis ? `<div><span class="text-i3">判定依据</span> <span class="text-i2">${esc(p.basis)}</span></div>` : ""}
           </div>
-          <p class="text-[11.5px] text-i3 mt-2.5 leading-relaxed">计划盈亏比 &lt; 1.5 不出手；现价追入需 ≥ 1.8。S 止损 · 浅色带 入场区 · E 计划入场价 · T 结构目标。</p>`
+          <p class="text-[11.5px] text-i3 mt-2.5 leading-relaxed">计划盈亏比 &lt; 1.5 不出手；1.5～2.0 仅观察；计划与现价盈亏比均 ≥ 2.0 才可出手。S 止损 · 浅色带 入场区 · E 计划入场价 · T 结构目标。</p>`
         : p && p.src === "V2" && p.basis ? `<div class="text-[12px] text-i3 mt-2.5 leading-relaxed px-1">判定依据：${esc(p.basis)}</div>`
         : p ? `<div class="grid grid-cols-2 gap-2 mt-2.5">
           <div class="tray p-3"><div class="lbl">盈亏比 · 回踩入场</div><div class="num text-[20px] font-semibold mt-1.5">1:${p.rrEntry.toFixed(2)}</div></div>
