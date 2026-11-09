@@ -187,7 +187,7 @@
 
       <div id="list-desktop" class="card overflow-hidden hidden md:block"><div class="overflow-x-auto"><div id="table-wrap"></div></div></div>
       <div id="list-mobile" class="md:hidden space-y-2"></div>
-      <p class="text-[11px] text-i3 leading-relaxed px-1">涨红跌绿。交易计划 V2 由代码确定：止损 = min(入场 − 1.5×ATR, 10 日低点 − 0.3×ATR)，目标取上方最近的结构压力（前 20/60 日高点、120 日内波段高点），盈亏比 = (目标 − 入场)/(入场 − 止损)；仓位按账户风险反推。仅作研究参考，不构成投资建议。</p>
+      <p class="text-[11px] text-i3 leading-relaxed px-1">涨红跌绿。交易计划 V2 由代码确定：止损 = min(入场 − 1.5×ATR, 10 日低点 − 0.3×ATR)，目标取上方最近的结构压力（前 20/60 日高点、120 日内波段高点），盈亏比 = (目标 − 入场)/(入场 − 止损)；仓位按账户风险反推。「买入/加仓」对齐策略 V2「可以出手」。仅作研究参考，不构成投资建议。</p>
     </section>
 
     <!-- MARKET -->
@@ -212,7 +212,7 @@
 <script>
   /* ================= Config & state ================= */
   const TOPIC = "trendradar-mac-511";
-  const CACHE_KEY = "511-cache-v8";
+  const CACHE_KEY = "511-cache-v9";
   const ADV = {
     BUY:    { label: "买入 / 加仓", short: "买入", color: "var(--a-buy)",    icon: "ph-arrow-fat-line-up" },
     HOLD:   { label: "持有",       short: "持有", color: "var(--a-hold)",   icon: "ph-hand-grabbing" },
@@ -550,6 +550,16 @@
     const f = v => (Number.isFinite(v) ? v.toFixed(1) : "—");
     return `<span class="num text-[12.5px]"><span style="color:${c(plan.rrEntry)}">${f(plan.rrEntry)}</span><span class="text-i3 mx-1">/</span><span style="color:${c(plan.rrNow)}">${f(plan.rrNow)}</span></span>`;
   }
+  /* 看板分类：有 V2 时以「是否可出手」为准，避免 LLM「持有观察」把可买票藏进持有 */
+  function effAdvice(s) {
+    const p = s.plan, raw = s.advice || "WATCH";
+    if (!(p && p.src === "V2")) return raw;
+    if (raw === "REDUCE") return "REDUCE";
+    if (p.state === "ok") return "BUY";
+    if (p.state === "wait" || p.state === "watch") return "WATCH";
+    if (p.state === "skip" || p.state === "expired" || p.state === "na") return raw === "BUY" ? "HOLD" : raw;
+    return raw;
+  }
   function effVerdict(s) {
     const p = s.plan; if (!p) return null;
     if (p.src === "V2") return { code: p.state, text: p.verdictText };   // V2：量化状态为准，AI 结论只作标注
@@ -685,20 +695,20 @@
   const ACT_ORDER = ["ok", "wait", "watch", "weak", "expired", "skip", "na"];
   const actCode = s => effVerdict(s)?.code || "skip";
   const hitChips = s => (s.disc?.hits || []).map(h => `<span class="chip" style="--c:var(--a-buy)">${esc(h)}</span>`).join(" ");
-  const key5 = s => advChip(s.advice);
+  const key5 = s => advChip(effAdvice(s));
   function visible() {
     const q = state.q.toLowerCase();
     return cur().filter(s => (state.type === "ALL" || s.type === state.type) && (!q || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)));
   }
   function sortedList(list) {
     const rrOf = p => { if (!p) return -1; const a = [p.rrNow, p.rrEntry].filter(Number.isFinite); return a.length ? Math.max(...a) : -1; };
-    const val = s => ({ score: s.score ?? -1, chg: Number.isFinite(s.chg) ? s.chg : -999, rr: rrOf(s.plan), name: s.name, adv: ADV_ORDER.indexOf(s.advice), price: s.price || 0, act: -ACT_ORDER.indexOf(actCode(s)) })[state.sort];
+    const val = s => ({ score: s.score ?? -1, chg: Number.isFinite(s.chg) ? s.chg : -999, rr: rrOf(s.plan), name: s.name, adv: ADV_ORDER.indexOf(effAdvice(s)), price: s.price || 0, act: -ACT_ORDER.indexOf(actCode(s)) })[state.sort];
     return [...list].sort((a, b) => { const x = val(a), y = val(b); const r = typeof x === "string" ? x.localeCompare(y, "zh") : x - y; return r * state.dir || (b.score ?? 0) - (a.score ?? 0); });
   }
   function setSort(k) { if (state.sort === k) state.dir *= -1; else { state.sort = k; state.dir = k === "name" ? 1 : -1; } renderDesk(); }
 
   function renderKpis(list) {
-    const n = list.length, cnt = k => list.filter(s => s.advice === k).length;
+    const n = list.length, cnt = k => list.filter(s => effAdvice(s) === k).length;
     const avg = n ? Math.round(list.filter(s => s.score != null).reduce((a, s) => a + s.score, 0) / Math.max(1, list.filter(s => s.score != null).length)) : null;
     const ok = list.filter(s => effVerdict(s)?.code === "ok").length, wait = list.filter(s => effVerdict(s)?.code === "wait").length, watch = list.filter(s => effVerdict(s)?.code === "watch").length;
     const mk = state.market;
@@ -716,7 +726,7 @@
   }
 
   function renderTabs(list) {
-    const cnt = k => list.filter(s => s.advice === k).length;
+    const cnt = k => list.filter(s => effAdvice(s) === k).length;
     const tabs = [{ k: "ALL", label: "全部", n: list.length }, ...ADV_ORDER.map(k => ({ k, label: ADV[k].label, n: cnt(k), color: ADV[k].color }))];
     document.getElementById("advice-tabs").innerHTML = tabs.map(t => `<button class="${state.adv === t.k ? "on" : ""} ${t.n === 0 && t.k !== "ALL" ? "zero" : ""}" onclick="state.adv='${t.k}';renderDesk()">${t.color ? `<span class="dot" style="--c:${t.color}"></span>` : ""}${t.label}<span class="n">${t.n}</span></button>`).join("");
   }
@@ -728,7 +738,7 @@
     const strategies = [...new Set(state.discover.flatMap(s => s.disc.hits))];
     el.innerHTML = `<div class="flex items-start gap-3"><div class="w-9 h-9 rounded-[11px] bg-s2 flex items-center justify-center shrink-0"><i class="ph-bold ph-compass text-[18px]"></i></div>
       <div class="min-w-0"><div class="text-[14px] font-semibold">全市场量化初筛 · 已排除你的自选</div>
-      <div class="text-[12px] text-i2 mt-1 leading-relaxed">${state.discover.length ? `${fmtTs(state.discTs)} · 策略：${esc(strategies.join("、"))} · 基本面过滤 · AI 复核 · 完整分析，与自选看板一致` : "运行「选股发现」后，候选会出现在这里。"}</div></div></div>`;
+      <div class="text-[12px] text-i2 mt-1 leading-relaxed">${state.discover.length ? `${fmtTs(state.discTs)} · 策略：${esc(strategies.join("、"))} · 「买入」按 V2 可以出手归类 · 基本面过滤 · AI 复核 · 完整分析` : "运行「选股发现」后，候选会出现在这里。"}</div></div></div>`;
   }
   function renderDesk() {
     const base = visible();
@@ -736,7 +746,7 @@
     renderKpis(cur());
     renderTabs(base);
     document.getElementById("sort").value = state.sort;
-    const list = sortedList(state.adv === "ALL" ? base : base.filter(s => s.advice === state.adv));
+    const list = sortedList(state.adv === "ALL" ? base : base.filter(s => effAdvice(s) === state.adv));
 
     if (!cur().length) {
       const empty = isDisc()
@@ -829,7 +839,7 @@
         </div>
         <div class="flex items-end justify-between mt-4">
           <div><div class="num text-[32px] leading-none font-semibold">${fp(s.price)}</div><div class="num text-[13px] mt-2 font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></div>
-          <div class="flex flex-col items-end gap-1.5">${advChip(s.advice)}${s.score != null ? `<div class="flex items-center gap-2"><span class="lbl">评分</span><span class="num font-semibold text-[15px]">${s.score}</span></div>` : ""}</div>
+          <div class="flex flex-col items-end gap-1.5">${advChip(effAdvice(s))}${s.score != null ? `<div class="flex items-center gap-2"><span class="lbl">评分</span><span class="num font-semibold text-[15px]">${s.score}</span></div>` : ""}</div>
         </div>
       </div>
       ${actionCard(s)}
