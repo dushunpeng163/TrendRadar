@@ -212,7 +212,7 @@
 <script>
   /* ================= Config & state ================= */
   const TOPIC = "trendradar-mac-511";
-  const CACHE_KEY = "511-cache-v9";
+  const CACHE_KEY = "511-cache-v10";
   const ADV = {
     BUY:    { label: "买入 / 加仓", short: "买入", color: "var(--a-buy)",    icon: "ph-arrow-fat-line-up" },
     HOLD:   { label: "持有",       short: "持有", color: "var(--a-hold)",   icon: "ph-hand-grabbing" },
@@ -573,7 +573,12 @@
     const zone = Number.isFinite(p.zoneLo) ? `${f(p.zoneLo)}～${f(p.zoneHi)}` : "—";
     const aiNote = s.advice === "REDUCE" ? "AI 结论偏空（减仓/卖出），与量化信号冲突时先以风险为重" : s.advice === "WATCH" ? "AI 结论为观望，仅作参考" : s.advice === "BUY" ? "AI 结论为买入/加仓" : "";
     const rr = Number.isFinite(p.rrEntry) ? `盈亏比：计划 1:${p.rrEntry.toFixed(2)}，现价 1:${p.rrNow.toFixed(2)}` : "上方无结构压力：不设固定目标，按追踪止损退出";
-    const tgt = Number.isFinite(p.target) ? `结构目标 ${f(p.target)}（${p.targetLabel}，${d(p.target)}）：到价减半，剩余用「最高价 − 2×ATR」追踪止损` : `无结构目标：用「最高价 − 2×ATR」追踪止损退出，不预设卖点`;
+    // A股买入按 100 股一手：不足 2 手无法「减半留仓」，只能到价清仓
+    const tgt = !Number.isFinite(p.target)
+      ? `无结构目标：用「最高价 − 2×ATR」追踪止损退出，不预设卖点`
+      : (p.shares || 0) < 200
+        ? `结构目标 ${f(p.target)}（${p.targetLabel}，${d(p.target)}）：到价全部止盈离场（仅 1 手，无法减半留仓）`
+        : `结构目标 ${f(p.target)}（${p.targetLabel}，${d(p.target)}）：到价减半（卖出半数，至少留 100 股），剩余用「最高价 − 2×ATR」追踪止损`;
     const stopLine = Number.isFinite(p.stop) ? `止损 ${f(p.stop)}（${d(p.stop)}）：收盘跌破即离场，不摊平、不加仓` : "";
     const sizing = p.shares >= 100 ? `仓位：${p.posText}` : (p.posText ? `仓位：${p.posText}` : "");
     const ext = p.extreme ? `极端风险：${p.extreme}` : "";
