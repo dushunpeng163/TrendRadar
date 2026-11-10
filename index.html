@@ -144,6 +144,10 @@
     .pill { display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 10px; border-radius:10px; font-size:12.5px; font-weight:500; color: var(--ink-2); background: var(--bg-2); white-space:nowrap; flex-shrink:0; }
     .pill.on { background: var(--ink-1); color: var(--bg-0); } .pill.on .dot { background: var(--bg-0); }
     .pill b { font-family:'Geist Mono',monospace; font-weight:600; }
+    .seg { display:inline-flex; padding:3px; border-radius:11px; background: var(--bg-2); gap:2px; }
+    .seg button { height:30px; padding:0 12px; border-radius:9px; font-size:12.5px; font-weight:600; color: var(--ink-2); display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+    .seg button.on { background: var(--bg-1); color: var(--ink-1); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+    .dark .seg button.on { background: var(--bg-3); }
     .pill.zero { opacity:.45; }
     .wbar { display:flex; height:6px; border-radius:99px; overflow:hidden; gap:2px; }
     .wbar span { border-radius:2px; }
@@ -192,6 +196,13 @@
       <div id="src-banner" class="card p-4 hidden"></div>
 
       <div class="space-y-3">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <div class="seg" id="horizon-seg">
+            <button onclick="setHorizon('long')" data-h="long"><i class="ph-bold ph-heartbeat"></i>长线持仓</button>
+            <button onclick="setHorizon('short')" data-h="short"><i class="ph-bold ph-lightning"></i>短线波段</button>
+          </div>
+          <span id="horizon-note" class="text-[11.5px] text-i3 hidden sm:inline"></span>
+        </div>
         <div class="flex gap-2">
           <div class="relative flex-1">
             <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-i3 text-[16px]"></i>
@@ -200,15 +211,13 @@
           <select id="type" class="sel" onchange="state.type=this.value;renderDesk()">
             <option value="ALL">全部类型</option><option value="STOCK">个股</option><option value="ETF">ETF</option><option value="INDEX">指数</option>
           </select>
-          <select id="sort" class="sel md:hidden" onchange="setSort(this.value)">
-            <option value="act">按行动</option><option value="check">按检查清单</option><option value="rr">按盈亏比</option><option value="score">按评分</option><option value="chg">按涨跌</option><option value="name">按名称</option>
-          </select>
+          <select id="sort" class="sel md:hidden" onchange="setSort(this.value)"></select>
         </div>
       </div>
 
       <div id="list-desktop" class="card overflow-hidden hidden md:block"><div class="overflow-x-auto"><div id="table-wrap"></div></div></div>
       <div id="list-mobile" class="md:hidden space-y-2"></div>
-      <p class="text-[11px] text-i3 leading-relaxed px-1">涨红跌绿。行动指令以策略 V2 为准：止损 = min(入场 − 1.5×ATR, 10 日低点 − 0.3×ATR)，目标取上方最近的结构压力，盈亏比 = (目标 − 入场)/(入场 − 止损)；AI 结论只作标注，与量化冲突时卡片会标出。检查清单 ● 通过 ● 警示 ● 不通过 ○ 数据缺失。「未解析」表示报告格式变化导致页面没读到，不代表报告缺项。仅作研究参考，不构成投资建议。</p>
+      <p id="foot-note" class="text-[11px] text-i3 leading-relaxed px-1">涨红跌绿。行动指令以策略 V2 为准：止损 = min(入场 − 1.5×ATR, 10 日低点 − 0.3×ATR)，目标取上方最近的结构压力，盈亏比 = (目标 − 入场)/(入场 − 止损)；AI 结论只作标注，与量化冲突时卡片会标出。检查清单 ● 通过 ● 警示 ● 不通过 ○ 数据缺失。「未解析」表示报告格式变化导致页面没读到，不代表报告缺项。仅作研究参考，不构成投资建议。</p>
     </section>
 
     <!-- MARKET -->
@@ -233,7 +242,7 @@
 <script>
   /* ================= Config & state ================= */
   const TOPIC = "trendradar-mac-511";
-  const CACHE_KEY = "511-cache-v13";
+  const CACHE_KEY = "511-cache-v14";
   const ADV = {
     BUY:    { label: "买入 / 加仓", short: "买入", color: "var(--a-buy)",    icon: "ph-arrow-fat-line-up" },
     HOLD:   { label: "持有",       short: "持有", color: "var(--a-hold)",   icon: "ph-hand-grabbing" },
@@ -250,7 +259,7 @@
     skip:    { t: "不出手",     c: "var(--skip)",  i: "ph-prohibit" },
     na:      { t: "不适用",     c: "var(--ink-3)", i: "ph-minus-circle" },
   };
-  const state = { source: "watch", risk: parseFloat(localStorage.getItem("511-risk")) || 1, openCode: null, view: "desk", act: "ALL", type: "ALL", q: "", sort: "act", dir: -1, stocks: [], discover: [], discFilter: "ALL", market: null, radar: [], quant: null, asOf: 0, radarId: "ALL" };
+  const state = { horizon: localStorage.getItem("511-horizon") || "long", lt: "ALL", source: "watch", risk: parseFloat(localStorage.getItem("511-risk")) || 1, openCode: null, view: "desk", act: "ALL", type: "ALL", q: "", sort: "act", dir: -1, stocks: [], discover: [], discFilter: "ALL", market: null, radar: [], quant: null, asOf: 0, radarId: "ALL" };
 
   /* ================= Helpers ================= */
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -319,7 +328,7 @@
   const V2_STATE = { "✅": "ok", "⏳": "wait", "👀": "watch", "⌛": "expired", "❌": "skip", "➖": "na" };
   function buildPlanV2(sec) {
     const i = sec.indexOf("交易计划 V2"); if (i < 0) return null;
-    let blk = sec.slice(i); const e = blk.search(/\n(?:#{2,3} |\*\*💰|\*\*✅|\*\*📋|\*\*🧠|---)/); if (e > 0) blk = blk.slice(0, e);
+    let blk = sec.slice(i); const e = blk.search(/\n(?:#{2,3} |\*\*💰|\*\*✅|\*\*📋|\*\*🧠|\*\*🧭|---)/); if (e > 0) blk = blk.slice(0, e);
     const g = re => grab(blk, re), n = re => parseFloat(g(re));
     const atrM = blk.match(/Wilder ATR14=([\d.]+)，([\d.]+)%/);
     const stM = blk.match(/当前状态\*\*[:：]\s*(✅|⏳|👀|⌛|❌|➖)\s*([^\n]+)/u);
@@ -403,6 +412,35 @@
     if (/盘中决策护栏/.test(sec) && !why.confidence && !why.observe.length) why.missing.push("护栏");
     return why;
   }
+  /* ---- 长线体检：「🧭 长线体检」键值块（由 DSA src/long_term.py 渲染，解析契约） ---- */
+  const LT_STATE = { "🟢": "healthy", "🟡": "caution", "🔴": "alert", "⚪": "unknown", "➖": "na" };
+  function buildLongTerm(sec) {
+    const i = sec.indexOf("长线体检"); if (i < 0) return null;
+    let blk = sec.slice(i); const e = blk.search(/\n(?:#{2,3} |\*\*💰|\*\*✅|\*\*📋|\*\*🧠|\*\*⚖️|---)/); if (e > 0) blk = blk.slice(0, e);
+    const g = re => grab(blk, re);
+    const lv = blk.match(/体检结论\*\*[:：]\s*(🟢|🟡|🔴|⚪|➖)\s*([^\n]*)/u);
+    if (!lv) return null;
+    const trendM = blk.match(/长线趋势\*\*[:：]\s*([^\s（(]+)\s*[（(]([^）)]*)[）)]/u);
+    const stopM = blk.match(/长线止损\*\*[:：]\s*([\d.]+)（([^，）]+)，距现价([+-][\d.]+)%/u);
+    const pos = g(/\*\*位置\*\*[:：]\s*([^\n]+)/);
+    const ddM = pos.match(/回撤\s*([+-]?[\d.]+)%/);
+    const ma120M = pos.match(/MA120\s*([+-][\d.]+)%/), ma250M = pos.match(/MA250\s*([+-][\d.]+)%/);
+    const addTxt = g(/加仓窗口\*\*[:：]\s*([^\n]+)/), redTxt = g(/减仓信号\*\*[:：]\s*([^\n]+)/), evTxt = g(/事件风险\*\*[:：]\s*([^\n]+)/);
+    const checks = g(/体检项\*\*[:：]\s*([^\n]+)/).split("；").map(x => x.trim()).filter(Boolean).map(x => {
+      const m = x.match(/^(✅|❌|⚪)\s*(.+?)(?:[（(](.*)[）)])?$/u); return m ? { state: ({ "✅": "pass", "❌": "fail", "⚪": "na" })[m[1]], short: m[2].trim(), detail: (m[3] || "").trim() } : null;
+    }).filter(Boolean);
+    return {
+      level: LT_STATE[lv[1]], levelText: lv[2].trim(),
+      trend: trendM ? trendM[1] : "", trendDetail: trendM ? trendM[2] : "",
+      pos, dd: ddM ? +ddM[1] : NaN, vsMa120: ma120M ? +ma120M[1] : NaN, vsMa250: ma250M ? +ma250M[1] : NaN,
+      addOpen: /^开启/.test(addTxt), addText: addTxt.replace(/^(开启|关闭)[:：]\s*/, ""),
+      reduce: /^有/.test(redTxt), reduceText: redTxt === "无" ? "" : redTxt.replace(/^有(（弱）)?[:：]\s*/, "$1 ").trim(),
+      events: evTxt && evTxt !== "无" ? evTxt.replace(/^⚠️\s*/, "").split("、").map(x => x.trim()).filter(Boolean) : [],
+      stop: stopM ? +stopM[1] : NaN, stopBasis: stopM ? stopM[2] : "", stopPct: stopM ? +stopM[3] : NaN,
+      chip: g(/\*\*筹码\*\*[:：]\s*([^\n]+)/), basis: g(/结论依据\*\*[:：]\s*([^\n]+)/), note: g(/\*\*说明\*\*[:：]\s*([^\n]+)/),
+      checks, passed: checks.filter(c => c.state === "pass").length, failed: checks.filter(c => c.state === "fail").length,
+    };
+  }
   const limitShort = l => l.replace(/数据|缺失|无|盘中实时|分布/g, "").replace(/^technical:.*/i, "技术指标不全").trim() || l;
 
   function buildStock(head, sec, sm, latest) {
@@ -431,6 +469,7 @@
         position: grab(sec, /仓位建议\*\*[:：]\s*([^\n]+)/),
         risks: bullets(sec, /风险警报\*\*[:：]?\s*\n/), boosts: bullets(sec, /利好催化\*\*[:：]?\s*\n/),
         why: parseWhy(sec, tables), planMissing: /交易计划 V2/.test(sec) && !buildPlanV2(sec),
+        lt: buildLongTerm(sec), ltMissing: /长线体检/.test(sec) && !buildLongTerm(sec),
         raw: sec, ts: latest,
       };
   }
@@ -510,7 +549,7 @@
         const sup = parseFloat(grab(sec, /支撑位\*\*[:：]\s*([\d.]+)/)), res = parseFloat(grab(sec, /压力位\*\*[:：]\s*([\d.]+)/));
         st = {
           code, name, type: typeOf(code, name), advice: plan && (plan.verdict === "ok" || plan.verdict === "wait") ? "BUY" : "WATCH", price: hPrice, chg: hChg,
-          score: disc.sscore, plan, one: reason, risks: [grab(sec, /风险提示\*\*[:：]\s*([^\n]+)/)].filter(t => t && t !== "—"), boosts: [], week: "", month: "", flat: {}, position: "", why: parseWhy(sec, getTables(sec)), planMissing: false,
+          score: disc.sscore, plan, one: reason, risks: [grab(sec, /风险提示\*\*[:：]\s*([^\n]+)/)].filter(t => t && t !== "—"), boosts: [], week: "", month: "", flat: {}, position: "", why: parseWhy(sec, getTables(sec)), planMissing: false, lt: buildLongTerm(sec), ltMissing: false,
           support: Number.isFinite(sup) ? sup : (plan ? plan.stop : NaN), resistance: Number.isFinite(res) ? res : (plan ? (Number.isFinite(plan.resistance) ? plan.resistance : (plan.targets[1] ?? plan.targets[0])) : NaN), trend, raw: sec, ts,
         };
       }
@@ -804,6 +843,29 @@
     if ((a === "WATCH" || a === "HOLD") && st === "ok") return { ai: ADV[a].short, q: ACT[st].l };
     return null;
   }
+  /* ===== 长线体检（持仓数月以上）===== */
+  const LT = { alert: { l: "警报", c: "var(--up)", i: "ph-siren" }, caution: { l: "注意", c: "var(--wait)", i: "ph-warning" }, healthy: { l: "健康", c: "var(--ok)", i: "ph-heartbeat" }, unknown: { l: "数据不足", c: "var(--ink-3)", i: "ph-question" }, na: { l: "不适用", c: "var(--ink-3)", i: "ph-minus-circle" } };
+  const LT_ORDER = ["alert", "caution", "healthy", "unknown", "na"];
+  const LT_GROUPS = [{ k: "alert", l: "警报" }, { k: "caution", l: "注意" }, { k: "healthy", l: "健康" }, { k: "other", l: "其他" }];
+  const ltCode = s => s.lt?.level || "unknown";
+  const ltGroup = s => (["unknown", "na"].includes(ltCode(s)) ? "other" : ltCode(s));
+  const hasLT = () => cur().some(s => s.lt);
+  const horizon = () => (state.horizon === "long" ? "long" : "short");
+  const ltChip = s => { const k = ltCode(s), m = LT[k]; return `<span class="chip" style="--c:${m.c}"><i class="ph-bold ${m.i}"></i>${m.l}</span>`; };
+  const ltTrendChip = s => { const t = s.lt?.trend; if (!t) return ""; const c = t === "向上" ? "var(--ok)" : t === "向下" ? "var(--up)" : "var(--wait)"; const ic = t === "向上" ? "ph-trend-up" : t === "向下" ? "ph-trend-down" : "ph-minus"; return `<span class="chip" style="--c:${c}"><i class="ph-bold ${ic}"></i>趋势${esc(t)}</span>`; };
+  const ltEventChip = s => s.lt?.events.length ? `<span class="chip" style="--c:var(--up)"><i class="ph-bold ph-warning-diamond"></i>${esc(s.lt.events.slice(0, 2).join("、"))}${s.lt.events.length > 2 ? "…" : ""}</span>` : "";
+  const ltDots = (lt, big) => !lt || !lt.checks.length ? "" : `<span class="ck ${big ? "gap-1" : ""}">${lt.checks.map(c => `<i class="${c.state}" title="${esc(c.short)}" ${big ? 'style="width:10px;height:10px"' : ""}></i>`).join("")}</span>`;
+  const ltText = lt => !lt || !lt.checks.length ? "" : `<span class="num text-[11.5px] ${lt.failed >= 2 ? "up" : lt.passed >= 5 ? "down" : "text-i2"}">${lt.passed}/${lt.checks.length}</span>`;
+  /* 一句话：该做什么 */
+  function ltAction(s) {
+    const lt = s.lt; if (!lt) return null;
+    if (lt.level === "alert") return { t: "考虑减仓", d: lt.reduceText || lt.basis, c: "var(--up)", i: "ph-arrow-down-right" };
+    if (lt.reduce) return { t: "先减一部分", d: lt.reduceText, c: "var(--wait)", i: "ph-arrow-down-right" };
+    if (lt.addOpen) return { t: "加仓窗口开启", d: lt.addText, c: "var(--ok)", i: "ph-plus-circle" };
+    if (lt.level === "caution") return { t: "收紧观察", d: lt.basis, c: "var(--wait)", i: "ph-eye" };
+    if (lt.level === "healthy") return { t: "拿着不动", d: lt.addText ? "加仓：" + lt.addText : lt.basis, c: "var(--ok)", i: "ph-hand-palm" };
+    return { t: lt.levelText || LT[lt.level].l, d: lt.note || "", c: "var(--ink-3)", i: "ph-info" };
+  }
   const ckDots = (w, big) => !w || !w.checks.length ? "" : `<span class="ck ${big ? "gap-1" : ""}">${w.checks.map(c => `<i class="${c.state}" title="${esc(c.short)}" ${big ? 'style="width:10px;height:10px"' : ""}></i>`).join("")}</span>`;
   const ckText = w => !w || !w.checks.length ? "" : `<span class="num text-[11.5px] ${w.failed ? "up" : w.passed >= 4 ? "down" : "text-i2"}">${w.passed}/${w.checks.length}</span>`;
   const missTag = t => `<span class="tag-miss">未解析·${t}</span>`;
@@ -831,10 +893,22 @@
   }
   const rrOf = p => { if (!p) return -1; const a = [p.rrNow, p.rrEntry].filter(Number.isFinite); return a.length ? Math.max(...a) : -1; };
   function sortedList(list) {
-    const val = s => ({ score: s.score ?? -1, chg: Number.isFinite(s.chg) ? s.chg : -999, rr: rrOf(s.plan), name: s.name, adv: ADV_ORDER.indexOf(effAdvice(s)), price: s.price || 0, act: -ACT_ORDER.indexOf(actCode(s)), check: s.why?.checks.length ? s.why.passed - s.why.failed * 0.5 : -1 })[state.sort];
+    const val = s => ({ score: s.score ?? -1, chg: Number.isFinite(s.chg) ? s.chg : -999, rr: rrOf(s.plan), name: s.name, adv: ADV_ORDER.indexOf(effAdvice(s)), price: s.price || 0, act: -ACT_ORDER.indexOf(actCode(s)), check: s.why?.checks.length ? s.why.passed - s.why.failed * 0.5 : -1,
+      lt: -LT_ORDER.indexOf(ltCode(s)), dd: Number.isFinite(s.lt?.dd) ? s.lt.dd : 1, ltcheck: s.lt?.checks.length ? s.lt.passed - s.lt.failed : -9 })[state.sort];
     return [...list].sort((a, b) => { const x = val(a), y = val(b); const r = typeof x === "string" ? x.localeCompare(y, "zh") : x - y; return r * state.dir || rrOf(b.plan) - rrOf(a.plan) || (b.score ?? 0) - (a.score ?? 0); });
   }
-  function setSort(k) { if (state.sort === k) state.dir *= -1; else { state.sort = k; state.dir = k === "name" ? 1 : -1; } renderDesk(); }
+  function setSort(k) { if (state.sort === k) state.dir *= -1; else { state.sort = k; state.dir = (k === "name" || k === "dd") ? 1 : -1; } renderDesk(); }
+  const SORTS = { short: [["act", "按行动"], ["check", "按检查清单"], ["rr", "按盈亏比"], ["score", "按评分"], ["chg", "按涨跌"], ["name", "按名称"]],
+                  long: [["lt", "按体检结论"], ["dd", "按回撤"], ["ltcheck", "按体检项"], ["chg", "按涨跌"], ["name", "按名称"]] };
+  function syncSortSelect(h) {
+    const el = document.getElementById("sort"), opts = SORTS[h];
+    if (!opts.some(o => o[0] === state.sort)) { state.sort = opts[0][0]; state.dir = state.sort === "dd" ? 1 : -1; }
+    el.innerHTML = opts.map(([k, l]) => `<option value="${k}">${l}</option>`).join(""); el.value = state.sort;
+  }
+  function setHorizon(h) {
+    state.horizon = h; localStorage.setItem("511-horizon", h); state.act = "ALL"; state.lt = "ALL";
+    state.sort = h === "long" ? "lt" : "act"; state.dir = -1; renderDesk();
+  }
 
   /* 今日状态条：数据新鲜度 · 市场温度 · 行动状态计数（点击即筛选）。替代原 4 个 KPI 卡 + 操作分布 */
   function freshness() {
@@ -843,6 +917,25 @@
     if (age > 36 * 3600) return { t: "已过期", c: "var(--up)" };
     if (age > 14 * 3600) return { t: "较旧", c: "var(--wait)" };
     return { t: "新鲜", c: "var(--ok)" };
+  }
+  function renderStripLong(list) {
+    const n = list.length, mk = state.market, fr = freshness();
+    const cnt = k => list.filter(s => ltGroup(s) === k).length;
+    const adds = list.filter(s => s.lt?.addOpen).length, reds = list.filter(s => s.lt?.reduce).length, evs = list.filter(s => s.lt?.events.length).length, missing = list.filter(s => s.ltMissing).length;
+    const mkTxt = mk && mk.score != null ? `<button class="tap inline-flex items-center gap-1.5" onclick="setView('market')"><span class="num font-semibold text-i1">${mk.score}</span><span class="text-i3">/100</span><span class="text-i2">${esc(mk.label)}</span><i class="ph ph-caret-right text-i3"></i></button>` : `<span class="text-i3">等待大盘复盘</span>`;
+    document.getElementById("strip").innerHTML = `
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 text-[12px]">
+        <div class="flex items-center gap-2 min-w-0"><span class="dot" style="--c:${fr.c}"></span><span class="mono text-i2">${state.asOf ? "分析 " + fmtTs(state.asOf) : "—"}</span><span style="color:${fr.c}" class="font-medium">${fr.t}</span><span class="text-i3">${state.fromSnapshot ? "快照" : "实时"}</span></div>
+        <div class="flex items-center gap-1.5"><span class="lbl">市场温度</span>${mkTxt}</div>
+      </div>
+      <div class="flex flex-wrap gap-1.5 mt-3">
+        <button class="pill tap ${state.lt === "ALL" ? "on" : ""}" onclick="state.lt='ALL';renderDesk()">全部 <b>${n}</b></button>
+        ${LT_GROUPS.map(g => `<button class="pill tap ${state.lt === g.k ? "on" : ""} ${cnt(g.k) ? "" : "zero"}" onclick="state.lt='${g.k}';renderDesk()"><span class="dot" style="--c:${g.k === "other" ? "var(--ink-3)" : LT[g.k].c}"></span>${g.l} <b>${cnt(g.k)}</b></button>`).join("")}
+      </div>
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-[11.5px] text-i3">
+        <span>${adds ? `<span style="color:var(--ok)"><i class="ph-bold ph-plus-circle"></i> ${adds} 个加仓窗口开启</span>` : "无加仓窗口"} · ${reds ? `<span style="color:var(--up)"><i class="ph-bold ph-arrow-down-right"></i> ${reds} 个减仓信号</span>` : "无减仓信号"} · ${evs ? `<span style="color:var(--up)">${evs} 个有事件风险</span>` : "无事件风险"}</span>
+        ${missing ? `<span>${missing} 个长线体检未解析</span>` : ""}
+      </div>`;
   }
   function renderStrip(list) {
     const n = list.length, mk = state.market, fr = freshness();
@@ -904,13 +997,53 @@
     const miss = missTags(s); if (miss) parts.push(miss);
     return parts.length ? `<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px]">${parts.join("")}</div>` : "";
   };
+  const FOOT = {
+    short: "涨红跌绿。行动指令以策略 V2 为准：止损 = min(入场 − 1.5×ATR, 10 日低点 − 0.3×ATR)，目标取上方最近的结构压力，盈亏比 = (目标 − 入场)/(入场 − 止损)；AI 结论只作标注，与量化冲突时卡片会标出。检查清单 ● 通过 ● 警示 ● 不通过 ○ 数据缺失。「未解析」表示报告格式变化导致页面没读到，不代表报告缺项。仅作研究参考，不构成投资建议。",
+    long: "长线体检面向持仓数月以上：🟢 健康 = MA60 > MA120、现价在 MA120 上方、250 日回撤 < 25%、无公告/新闻事件风险；🟡 注意 = 其中任一项走弱或出现减持/质押等中等事件；🔴 警报 = MA60 下穿 MA120 且双双向下、跌破年线且年线走平、回撤 > 35% 或立案/退市级事件。加仓窗口只在趋势向上且体检健康、价格回到 MA60～MA120 时开启。长线止损取年线下方 3% 与 −20% 中更近者。短线入场/止损请切到「短线波段」。仅作研究参考，不构成投资建议。",
+  };
+  function renderDeskLong(list) {
+    const th = (k, label, cls = "") => k ? `<th class="sort ${cls}" onclick="setSort('${k}')">${label}${state.sort === k ? `<i class="ph-bold ${state.dir < 0 ? "ph-caret-down" : "ph-caret-up"} ml-1"></i>` : ""}</th>` : `<th class="${cls}">${label}</th>`;
+    const typeLbl = s => ({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type];
+    const posLine = s => { const lt = s.lt; if (!lt) return ""; const parts = []; if (Number.isFinite(lt.vsMa120)) parts.push(`MA120 ${pct(lt.vsMa120)}`); if (Number.isFinite(lt.vsMa250)) parts.push(`年线 ${pct(lt.vsMa250)}`); if (Number.isFinite(lt.dd)) parts.push(`<span class="${lt.dd <= -25 ? "up" : ""}">回撤 ${lt.dd.toFixed(1)}%</span>`); return parts.join(" · "); };
+    const stopLine = s => { const lt = s.lt; return lt && Number.isFinite(lt.stop) ? `<div class="num font-medium">${fp(lt.stop, s.price)}</div><div class="num text-[11px] text-i3 mt-0.5" title="${esc(lt.stopBasis)}">${pct(lt.stopPct)} · ${esc(lt.stopBasis.replace(/年线 MA250 下方 3%/, "年线下"))}</div>` : `<span class="text-i3">—</span>`; };
+    const noLT = s => `<span class="text-i3">${s.ltMissing ? missTag("长线体检") : "下次分析后出现"}</span>`;
+    document.getElementById("table-wrap").innerHTML = `<table class="dtable" style="min-width:960px"><thead><tr>
+      ${th("name", "标的")}${th("price", "现价 / 涨跌", "r")}${th("lt", "体检结论 · 该做什么")}${th("dd", "长线趋势 · 位置")}${th("ltcheck", "体检项")}${th("", "事件风险")}${th("", "长线止损", "r")}</tr></thead><tbody>
+      ${list.map(s => { const a = ltAction(s); return `<tr onclick="openDrawer('${s.code}')">
+        <td><div class="font-semibold text-[13.5px]">${esc(s.name)}${staleTag(s)}</div><div class="mono text-[11px] text-i3 mt-0.5">${esc(s.code)} · ${typeLbl(s)}</div></td>
+        <td class="r"><div class="num font-medium">${fp(s.price)}</div><div class="num text-[12px] ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></td>
+        <td class="act" style="min-width:210px;max-width:280px;white-space:normal">${s.lt ? `<div class="flex flex-wrap items-center gap-1.5">${ltChip(s)}${a ? `<span class="text-[12.5px] font-medium" style="color:${a.c}"><i class="ph-bold ${a.i}"></i> ${esc(a.t)}</span>` : ""}</div>${a && a.d ? `<div class="text-[11.5px] text-i3 mt-1 clamp1">${esc(a.d)}</div>` : ""}` : noLT(s)}</td>
+        <td class="wrap">${s.lt ? `<div class="flex flex-wrap items-center gap-1.5">${ltTrendChip(s)}</div><div class="num text-[11.5px] text-i2 mt-1">${posLine(s)}</div>` : ""}</td>
+        <td style="white-space:normal;max-width:150px">${s.lt && s.lt.checks.length ? `<div class="flex items-center gap-2">${ltDots(s.lt, true)}${ltText(s.lt)}</div>` : `<span class="text-i3">—</span>`}</td>
+        <td class="wrap">${s.lt ? (s.lt.events.length ? ltEventChip(s) : `<span class="text-i3 text-[12px]">无</span>`) : ""}</td>
+        <td class="r" style="white-space:normal;min-width:120px">${stopLine(s)}</td></tr>`; }).join("")}</tbody></table>`;
+
+    document.getElementById("list-mobile").innerHTML = list.map(s => { const lt = s.lt, a = ltAction(s); return `
+      <button onclick="openDrawer('${s.code}')" class="tap card w-full text-left p-3.5 fade-in block">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0"><div class="font-semibold text-[15px] leading-tight">${esc(s.name)}${staleTag(s)}</div><div class="mono text-[11px] text-i3 mt-1">${esc(s.code)} · ${typeLbl(s)}</div></div>
+          <div class="text-right shrink-0"><div class="num text-[16px] font-semibold leading-tight">${fp(s.price)}</div><div class="num text-[12px] mt-1 font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></div>
+        </div>
+        ${lt ? `<div class="flex flex-wrap items-center gap-1.5 mt-2.5">${ltChip(s)}${ltTrendChip(s)}${ltEventChip(s)}</div>
+        ${a ? `<div class="text-[13px] mt-2 font-medium" style="color:${a.c}"><i class="ph-bold ${a.i}"></i> ${esc(a.t)}</div>${a.d ? `<div class="text-[12.5px] text-i2 mt-1 leading-snug clamp2">${esc(a.d)}</div>` : ""}` : ""}
+        ${posLine(s) ? `<div class="num text-[12px] text-i2 mt-2.5">${posLine(s)}</div>` : ""}
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-[11.5px]">${lt.checks.length ? `<span class="inline-flex items-center gap-1.5">${ltDots(lt)}${ltText(lt)}</span>` : ""}${Number.isFinite(lt.stop) ? `<span class="text-i3">止损 <span class="num text-i2">${fp(lt.stop, s.price)}</span> (${pct(lt.stopPct)})</span>` : ""}</div>`
+        : `<div class="mt-2.5 text-[12px]">${noLT(s)}</div>`}
+      </button>`; }).join("");
+  }
   function renderDesk() {
     const base = visible();
     renderQuantBanner();
     renderBanner();
-    renderStrip(cur());
-    document.getElementById("sort").value = state.sort;
-    const list = sortedList(state.act === "ALL" ? base : base.filter(s => actGroup(s) === state.act));
+    const h = horizon();
+    document.querySelectorAll("#horizon-seg button").forEach(b => b.classList.toggle("on", b.dataset.h === h));
+    document.getElementById("horizon-note").textContent = h === "long" ? (hasLT() ? "持仓数月以上 · 健康 / 注意 / 警报" : "长线体检在下一次分析后出现") : "几天到几周 · 以策略 V2 为准";
+    document.getElementById("foot-note").textContent = FOOT[h];
+    syncSortSelect(h);
+    if (h === "long") renderStripLong(cur()); else renderStrip(cur());
+    const list = h === "long"
+      ? sortedList(state.lt === "ALL" ? base : base.filter(s => ltGroup(s) === state.lt))
+      : sortedList(state.act === "ALL" ? base : base.filter(s => actGroup(s) === state.act));
 
     if (!cur().length) {
       const empty = isDisc()
@@ -922,6 +1055,7 @@
       const empty = `<div class="p-8 text-center text-i2 text-[13px]"><i class="ph ph-funnel-simple text-[24px] text-i3"></i><div class="mt-2">该分类下暂无标的</div></div>`;
       document.getElementById("table-wrap").innerHTML = empty; document.getElementById("list-mobile").innerHTML = `<div class="card">${empty}</div>`; return;
     }
+    if (h === "long") { renderDeskLong(list); return; }
 
     const th = (k, label, cls = "") => k ? `<th class="sort ${cls}" onclick="setSort('${k}')">${label}${state.sort === k ? `<i class="ph-bold ${state.dir < 0 ? "ph-caret-down" : "ph-caret-up"} ml-1"></i>` : ""}</th>` : `<th class="${cls}">${label}</th>`;
     const typeLbl = s => ({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type];
@@ -1022,9 +1156,36 @@
     if (miss) blocks.push(`<div class="px-1 flex flex-wrap gap-1.5 items-center text-[11px] text-i3">${miss}<span>报告里有该段，但页面没读到（格式可能已变化）</span></div>`);
     return blocks.length ? `<section class="px-5 pt-5"><div class="lbl mb-2.5">为什么 · 依据与可信度</div><div class="space-y-2">${blocks.join("")}</div></section>` : "";
   }
+  function ltSection(s) {
+    const lt = s.lt; if (!lt) return s.ltMissing ? `<section class="px-5 pt-5"><div class="px-1 flex flex-wrap gap-1.5 items-center text-[11px] text-i3">${missTag("长线体检")}<span>报告里有该段，但页面没读到</span></div></section>` : "";
+    const a = ltAction(s), m = LT[lt.level];
+    const ICON = { pass: ["ph-check-circle", "var(--ok)"], fail: ["ph-x-circle", "var(--up)"], na: ["ph-minus-circle", "var(--ink-3)"] };
+    const row = (l, v, c) => v ? `<div class="flex gap-3 text-[13px] leading-relaxed min-w-0"><span class="text-i3 shrink-0 w-[68px]">${l}</span><span class="${c || "text-i2"} min-w-0 flex-1 break-words">${v}</span></div>` : "";
+    return `<section class="px-5 pt-5"><div class="lbl mb-2.5">长线体检 · 持仓数月以上</div>
+      <div class="rounded-[14px] p-4" style="background:color-mix(in srgb,${m.c} 10%,var(--bg-1));border:1px solid color-mix(in srgb,${m.c} 30%,transparent)">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 min-w-0"><i class="ph-bold ${m.i} text-[22px] shrink-0" style="color:${m.c}"></i><div class="min-w-0"><div class="text-[16px] font-semibold" style="color:${m.c}">${m.l}${a ? ` · ${esc(a.t)}` : ""}</div><div class="text-[12px] text-i2 mt-0.5">${ltTrendChip(s) ? `长线趋势${esc(lt.trend)}${lt.trendDetail ? `（${esc(lt.trendDetail)}）` : ""}` : ""}</div></div></div>
+          ${lt.checks.length ? `<div class="flex items-center gap-2 shrink-0">${ltDots(lt, true)}${ltText(lt)}</div>` : ""}
+        </div>
+        ${a && a.d ? `<div class="text-[13px] text-i1 leading-relaxed mt-3 break-words">${esc(a.d)}</div>` : ""}
+      </div>
+      ${lt.level === "na" || lt.level === "unknown" ? (lt.note ? `<div class="text-[12.5px] text-i3 mt-2 px-1">${esc(lt.note)}</div>` : "") : `
+      <div class="tray p-3.5 mt-2 space-y-1.5">
+        ${row("位置", esc(lt.pos))}
+        ${row("加仓窗口", `<span class="${lt.addOpen ? "font-medium" : ""}" style="${lt.addOpen ? "color:var(--ok)" : ""}">${lt.addOpen ? "开启 · " : "关闭 · "}${esc(lt.addText)}</span>`)}
+        ${row("减仓信号", lt.reduce ? `<span style="color:var(--up)">${esc(lt.reduceText)}</span>` : "无")}
+        ${row("长线止损", Number.isFinite(lt.stop) ? `<span class="num font-semibold text-i1">${fp(lt.stop, s.price)}</span> <span class="text-i3">${esc(lt.stopBasis)} · 距现价 ${pct(lt.stopPct)}</span>` : "")}
+        ${row("事件风险", lt.events.length ? `<span style="color:var(--up)">⚠️ ${esc(lt.events.join("、"))}</span>` : "公告/新闻未见风险关键词")}
+        ${row("筹码", esc(lt.chip))}
+      </div>
+      ${lt.checks.length ? `<div class="tray p-3.5 mt-2"><div class="text-[12px] font-semibold mb-2">体检项</div><ul class="space-y-1.5">${lt.checks.map(c => `<li class="flex gap-2 text-[13px] leading-snug"><i class="ph-bold ${ICON[c.state][0]} text-[15px] shrink-0 mt-px" style="color:${ICON[c.state][1]}"></i><div><span class="text-i1">${esc(c.short)}</span>${c.detail ? `<span class="text-i3"> · ${esc(c.detail)}</span>` : ""}</div></li>`).join("")}</ul></div>` : ""}
+      ${lt.basis ? `<div class="text-[12px] text-i3 mt-2 px-1 leading-relaxed">结论依据：${esc(lt.basis)}</div>` : ""}`}
+    </section>`;
+  }
   function openDrawer(code) {
     const s = state.stocks.find(x => x.code === code) || state.discover.find(x => x.code === code); if (!s) return;
     const p = s.plan, sec = (t, body) => `<section class="px-5 pt-5"><div class="lbl mb-2.5">${t}</div>${body}</section>`;
+    const isLong = horizon() === "long";
     document.getElementById("drawer-body").innerHTML = `
       <div class="px-5 pt-4 pb-4 sticky top-0 z-10" style="background:var(--bg-0);border-bottom:1px solid var(--line)">
         <div class="flex items-start justify-between gap-3">
@@ -1037,6 +1198,8 @@
         </div>
         ${conflict(s) ? `<div class="mt-3 text-[12px] leading-relaxed rounded-[10px] px-3 py-2" style="background:color-mix(in srgb,var(--up) 10%,transparent);color:var(--up)"><i class="ph-bold ph-warning-diamond"></i> AI 结论「${esc(ADV[s.advice].label)}」与量化状态「${esc(ACT[s.plan.state].l)}」不一致。行动指令以量化为准，AI 观点见下方一句话决策与操作建议。</div>` : ""}
       </div>
+      ${isLong ? ltSection(s) : ""}
+      ${isLong ? `<details class="pt-5 group"><summary class="list-none cursor-pointer lbl px-5 flex items-center gap-1.5 -mb-2">短线波段视角（策略 V2 · 入场 / 止损 / 盈亏比）<i class="ph ph-caret-down group-open:rotate-180 transition-transform"></i></summary>` : ""}
       ${actionCard(s)}
       ${whySection(s)}
       ${s.disc ? sec("选股依据", discBasis(s)) : ""}
@@ -1060,6 +1223,7 @@
           <div class="tray p-3"><div class="lbl">盈亏比 · 回踩入场</div><div class="num text-[20px] font-semibold mt-1.5">1:${p.rrEntry.toFixed(2)}</div></div>
           <div class="tray p-3"><div class="lbl">盈亏比 · 现价追入</div><div class="num text-[20px] font-semibold mt-1.5">1:${p.rrNow.toFixed(2)}</div></div></div>
           <p class="text-[11.5px] text-i3 mt-2.5 leading-relaxed">旧版计划（下一次分析后自动升级为 V2）。S 止损 · E 入场 · 1/2/3 目标 · R 压力。</p>` : ""}`)}
+      ${isLong ? `</details>` : ltSection(s)}
       ${(s.week || s.month) ? sec("走势前瞻", `<div class="space-y-2">
         ${s.week ? `<div class="tray p-3.5"><div class="flex items-center gap-1.5 text-[12px] font-semibold mb-1.5"><i class="ph-bold ph-calendar-blank"></i>未来 1 周</div><div class="text-[13px] leading-relaxed text-i2">${esc(s.week)}</div></div>` : ""}
         ${s.month ? `<div class="tray p-3.5"><div class="flex items-center gap-1.5 text-[12px] font-semibold mb-1.5"><i class="ph-bold ph-calendar-dots"></i>未来 1 个月</div><div class="text-[13px] leading-relaxed text-i2">${esc(s.month)}</div></div>` : ""}</div>`) : ""}
