@@ -61,6 +61,10 @@
     .chip { display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 8px; border-radius:7px; font-size:11.5px; font-weight:600; white-space:nowrap;
             background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
     .chip i { font-size: 12px; }
+    /* 抽屉里的长文本标签允许换行，避免把抽屉撑出横向滚动 */
+    #drawer-body { overflow-x: hidden; }
+    #drawer-body .chip { white-space: normal; height: auto; min-height: 22px; padding-top: 2px; padding-bottom: 2px; line-height: 1.4; max-width: 100%; text-align: left; }
+    #drawer-body .chip i { flex-shrink: 0; }
     .dot { width:6px; height:6px; border-radius:99px; background: var(--c); display:inline-block; }
 
     /* nav / filter pills */
@@ -242,7 +246,7 @@
 <script>
   /* ================= Config & state ================= */
   const TOPIC = "trendradar-mac-511";
-  const CACHE_KEY = "511-cache-v14";
+  const CACHE_KEY = "511-cache-v15";
   const ADV = {
     BUY:    { label: "买入 / 加仓", short: "买入", color: "var(--a-buy)",    icon: "ph-arrow-fat-line-up" },
     HOLD:   { label: "持有",       short: "持有", color: "var(--a-hold)",   icon: "ph-hand-grabbing" },
@@ -338,8 +342,17 @@
     const stopM = blk.match(/\*\*止损\*\*[:：]\s*([\d.]+)（距入场([+-][\d.]+)%/);
     const posTxt = g(/建议仓位\*\*[:：][ \t]*([^\n]+)/), shares = parseInt(posTxt) || 0;
     const basis = g(/判定依据\*\*[:：][ \t]*([^\n]+)/);
+    /* 参考位：没有合格买点时报告给的「参考买入 / 参考止损 / 上方压力」，只供查看，不是买入信号 */
+    const refBuy = g(/参考买入\*\*[:：][ \t]*([^\n]+)/), refStopM = blk.match(/参考止损\*\*[:：]\s*([\d.]+)（(.*)，距现价/), refResM = blk.match(/上方压力\*\*[:：]\s*([\d.]+)（([^，）]+)/);
+    let ref = null;
+    if (refBuy || refStopM) {
+      const rn = nums(refBuy.split("（")[0]);
+      ref = { lo: rn.length > 1 ? rn[0] : NaN, hi: rn.length > 1 ? rn[1] : NaN, level: rn.length === 1 ? rn[0] : NaN,
+              buyLabel: ((refBuy.match(/（(.*)）\s*$/) || [])[1] || "").replace(/；参考位.*$/, ""),
+              stop: refStopM ? +refStopM[1] : NaN, stopLabel: refStopM ? refStopM[2] : "", res: refResM ? +refResM[1] : NaN, resLabel: refResM ? refResM[2] : "" };
+    }
     return {
-      src: "V2", state, verdict: state, verdictText: stM ? stM[2].trim() : VERDICT[state].t,
+      src: "V2", state, verdict: state, verdictText: stM ? stM[2].trim() : VERDICT[state].t, ref,
       market: g(/市场状态\*\*[:：]\s*([^\n]+)/), strategy: g(/策略类型\*\*[:：]\s*([^\n]+)/),
       zoneLo: zn[0], zoneHi: zn[1], entry: n(/计划入场价\*\*[:：]\s*([\d.]+)/), stop: stopM ? +stopM[1] : NaN, stopPct: stopM ? +stopM[2] : NaN,
       target: tgM ? +tgM[1] : NaN, targetLabel: tgM ? tgM[2] : "", trailing: !tgM,
@@ -738,8 +751,12 @@
     } else if (p.state === "na") {
       A.when = [p.verdictText]; A.how = ["不给出止损与目标，只看趋势与支撑压力"];
     } else {
-      A.when = [...p.basis.split("；").filter(Boolean), "下一次分析重新判断"];
-      A.how = ["0 仓", stopLine ? `若已持有：${stopLine}` : ""].filter(Boolean);
+      const r = !Number.isFinite(p.entry) ? p.ref : null;   // 没有合格买点时的参考位
+      const rBuy = !r ? "" : Number.isFinite(r.lo) ? `参考买入区 ${f(r.lo)}～${f(r.hi)}（${d(r.lo)}～${d(r.hi)}）：${r.buyLabel}` : Number.isFinite(r.level) ? `参考买入条件：站回 ${f(r.level)}（${d(r.level)}）上方，${r.buyLabel}` : "";
+      A.when = [...p.basis.split("；").filter(Boolean), rBuy, r ? "以上是参考位，不是买入信号；条件满足后下一次分析会给出正式入场区" : "下一次分析重新判断"].filter(Boolean);
+      A.how = [r ? "空仓：0 仓，当前不建议出手" : "0 仓", stopLine ? `若已持有：${stopLine}` : "",
+               r && Number.isFinite(r.stop) ? `若已持有：参考止损 ${f(r.stop)}（${d(r.stop)}）· ${r.stopLabel.replace(/（持仓者参考）/, "")}` : "",
+               r && Number.isFinite(r.res) ? `上方压力 ${f(r.res)}（${r.resLabel}，${d(r.res)}）：反弹到这里容易受阻` : ""].filter(Boolean);
     }
     return A;
   }
@@ -879,6 +896,13 @@
     if (p.src === "V2") {
       if (Number.isFinite(p.zoneLo)) parts.push(`入场 ${f(p.zoneLo)}～${f(p.zoneHi)}`); else if (Number.isFinite(p.entry)) parts.push(`入场 ${f(p.entry)}`);
       if (Number.isFinite(p.stop)) parts.push(`止损 ${f(p.stop)}`);
+      if (!Number.isFinite(p.entry) && p.ref) {
+        const r = p.ref;
+        parts.push("参考位（不建议出手）");
+        if (Number.isFinite(r.lo)) parts.push(`买入 ${f(r.lo)}～${f(r.hi)}`); else if (Number.isFinite(r.level)) parts.push(`站回 ${f(r.level)}`);
+        if (Number.isFinite(r.stop)) parts.push(`止损 ${f(r.stop)}`);
+        if (Number.isFinite(r.res)) parts.push(`压力 ${f(r.res)}`);
+      }
       if (p.invalid) parts.push(`失效：${p.invalid}`);
       else if (p.basis && ["skip", "expired", "watch", "wait"].includes(p.state)) parts.push((p.state === "skip" || p.state === "expired" ? "原因：" : "等：") + p.basis);
     } else {
@@ -886,6 +910,23 @@
     }
     return parts.join(" · ");
   }
+  /* 价格行（长线视图卡片 / 表格用）：有正式计划 → 入场区·止损·目标；没有合格买点 → 参考位（明确标注不建议出手） */
+  function pxLine(s) {
+    const p = s.plan; if (!p || !Number.isFinite(s.price)) return null;
+    if (p.src === "V2" && p.state === "na") return null;
+    const f = x => fp(x, s.price), a = actionPlan(s);
+    if (Number.isFinite(p.entry) && Number.isFinite(p.stop)) {
+      const tgt = p.src === "V2" ? p.target : p.targets[0];
+      return { ref: false, label: a ? a.label : "交易计划", color: a ? a.color : "var(--ink-2)",
+               parts: [["入场", Number.isFinite(p.zoneLo) ? `${f(p.zoneLo)}～${f(p.zoneHi)}` : f(p.entry)], ["止损", f(p.stop)], ...(Number.isFinite(tgt) ? [["目标", f(tgt)]] : [])] };
+    }
+    const r = p.ref;
+    if (r) return { ref: true, label: "参考位 · 当前不建议出手", color: "var(--ink-3)",
+                    parts: [Number.isFinite(r.lo) ? ["买入", `${f(r.lo)}～${f(r.hi)}`] : Number.isFinite(r.level) ? ["站回", f(r.level)] : null,
+                            Number.isFinite(r.stop) ? ["止损", f(r.stop)] : null, Number.isFinite(r.res) ? ["压力", f(r.res)] : null].filter(Boolean) };
+    return { ref: true, label: "暂无买点", color: "var(--ink-3)", parts: [], note: p.verdictText || "" };
+  }
+  const pxParts = x => x.parts.map(([k, v]) => `<span class="whitespace-nowrap"><span class="text-i3">${k}</span> <span class="num font-medium text-i1">${v}</span></span>`).join(`<span class="text-i3"> · </span>`);
   const hitChips = s => (s.disc?.hits || []).map(h => `<span class="chip" style="--c:var(--a-buy)">${esc(h)}</span>`).join(" ");
   function visible() {
     const q = state.q.toLowerCase();
@@ -1007,8 +1048,10 @@
     const posLine = s => { const lt = s.lt; if (!lt) return ""; const parts = []; if (Number.isFinite(lt.vsMa120)) parts.push(`MA120 ${pct(lt.vsMa120)}`); if (Number.isFinite(lt.vsMa250)) parts.push(`年线 ${pct(lt.vsMa250)}`); if (Number.isFinite(lt.dd)) parts.push(`<span class="${lt.dd <= -25 ? "up" : ""}">回撤 ${lt.dd.toFixed(1)}%</span>`); return parts.join(" · "); };
     const stopLine = s => { const lt = s.lt; return lt && Number.isFinite(lt.stop) ? `<div class="num font-medium">${fp(lt.stop, s.price)}</div><div class="num text-[11px] text-i3 mt-0.5" title="${esc(lt.stopBasis)}">${pct(lt.stopPct)} · ${esc(lt.stopBasis.replace(/年线 MA250 下方 3%/, "年线下"))}</div>` : `<span class="text-i3">—</span>`; };
     const noLT = s => `<span class="text-i3">${s.ltMissing ? missTag("长线体检") : "下次分析后出现"}</span>`;
-    document.getElementById("table-wrap").innerHTML = `<table class="dtable" style="min-width:960px"><thead><tr>
-      ${th("name", "标的")}${th("price", "现价 / 涨跌", "r")}${th("lt", "体检结论 · 该做什么")}${th("dd", "长线趋势 · 位置")}${th("ltcheck", "体检项")}${th("", "事件风险")}${th("", "长线止损", "r")}</tr></thead><tbody>
+    const pxCell = s => { const x = pxLine(s); return !x ? `<span class="text-i3">${s.plan && s.plan.state === "na" ? "不适用" : "—"}</span>` : `<div class="text-[11px] font-medium" style="color:${x.color}">${esc(x.label)}</div><div class="mt-0.5 leading-snug">${x.parts.length ? pxParts(x) : `<span class="text-i3 clamp2">${esc(x.note)}</span>`}</div>`; };
+    const pxCard = s => { const x = pxLine(s); return !x ? "" : `<div class="tray px-2.5 py-2 mt-2.5 text-[12px] leading-relaxed"><div class="text-[11px] font-medium" style="color:${x.color}">${x.ref ? "" : "短线买点 · "}${esc(x.label)}</div><div class="mt-0.5">${x.parts.length ? pxParts(x) : `<span class="text-i3">${esc(x.note)}</span>`}</div></div>`; };
+    document.getElementById("table-wrap").innerHTML = `<table class="dtable" style="min-width:1120px"><thead><tr>
+      ${th("name", "标的")}${th("price", "现价 / 涨跌", "r")}${th("lt", "体检结论 · 该做什么")}${th("dd", "长线趋势 · 位置")}${th("ltcheck", "体检项")}${th("", "事件风险")}${th("", "短线买点 / 止损")}${th("", "长线止损", "r")}</tr></thead><tbody>
       ${list.map(s => { const a = ltAction(s); return `<tr onclick="openDrawer('${s.code}')">
         <td><div class="font-semibold text-[13.5px]">${esc(s.name)}${staleTag(s)}</div><div class="mono text-[11px] text-i3 mt-0.5">${esc(s.code)} · ${typeLbl(s)}</div></td>
         <td class="r"><div class="num font-medium">${fp(s.price)}</div><div class="num text-[12px] ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></td>
@@ -1016,9 +1059,10 @@
         <td class="wrap">${s.lt ? `<div class="flex flex-wrap items-center gap-1.5">${ltTrendChip(s)}</div><div class="num text-[11.5px] text-i2 mt-1">${posLine(s)}</div>` : ""}</td>
         <td style="white-space:normal;max-width:150px">${s.lt && s.lt.checks.length ? `<div class="flex items-center gap-2">${ltDots(s.lt, true)}${ltText(s.lt)}</div>` : `<span class="text-i3">—</span>`}</td>
         <td class="wrap">${s.lt ? (s.lt.events.length ? ltEventChip(s) : `<span class="text-i3 text-[12px]">无</span>`) : ""}</td>
+        <td style="white-space:normal;min-width:190px;max-width:250px">${pxCell(s)}</td>
         <td class="r" style="white-space:normal;min-width:120px">${stopLine(s)}</td></tr>`; }).join("")}</tbody></table>`;
 
-    document.getElementById("list-mobile").innerHTML = list.map(s => { const lt = s.lt, a = ltAction(s); return `
+    document.getElementById("list-mobile").innerHTML = list.map(s => { const lt = s.lt, a = ltAction(s), px = pxLine(s); return `
       <button onclick="openDrawer('${s.code}')" class="tap card w-full text-left p-3.5 fade-in block">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0"><div class="font-semibold text-[15px] leading-tight">${esc(s.name)}${staleTag(s)}</div><div class="mono text-[11px] text-i3 mt-1">${esc(s.code)} · ${typeLbl(s)}</div></div>
@@ -1029,6 +1073,7 @@
         ${posLine(s) ? `<div class="num text-[12px] text-i2 mt-2.5">${posLine(s)}</div>` : ""}
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-[11.5px]">${lt.checks.length ? `<span class="inline-flex items-center gap-1.5">${ltDots(lt)}${ltText(lt)}</span>` : ""}${Number.isFinite(lt.stop) ? `<span class="text-i3">止损 <span class="num text-i2">${fp(lt.stop, s.price)}</span> (${pct(lt.stopPct)})</span>` : ""}</div>`
         : `<div class="mt-2.5 text-[12px]">${noLT(s)}</div>`}
+        ${px ? `<div class="tray px-2.5 py-2 mt-2.5 text-[12px] leading-relaxed"><div class="text-[11px] font-medium" style="color:${px.color}">${px.ref ? "" : "短线 · "}${esc(px.label)}</div><div class="mt-0.5">${px.parts.length ? pxParts(px) : `<span class="text-i3 clamp2">${esc(px.note)}</span>`}</div></div>` : ""}
       </button>`; }).join("");
   }
   function renderDesk() {
@@ -1104,7 +1149,19 @@
   function planTable(s) {
     const p = s.plan; if (!p) return `<div class="text-[13px] text-i3">暂无点位数据</div>`;
     if (p.src === "V2" && p.state === "na") return `<div class="tray p-3.5 text-[13px] text-i2 leading-relaxed">${esc(p.verdictText)}</div>`;
-    if (p.src === "V2" && !Number.isFinite(p.entry)) return `<div class="tray p-3.5 text-[13px] text-i2 leading-relaxed">${esc(p.verdictText)}${p.basis ? `<div class="text-[12px] text-i3 mt-1.5">${esc(p.basis)}</div>` : ""}</div>`;
+    if (p.src === "V2" && !Number.isFinite(p.entry)) {
+      const head = `<div class="tray p-3.5 text-[13px] text-i2 leading-relaxed">${esc(p.verdictText)}${p.basis ? `<div class="text-[12px] text-i3 mt-1.5">${esc(p.basis)}</div>` : ""}</div>`;
+      const r = p.ref; if (!r) return head;
+      const line = (c, label, sub, val, v) => `<div class="flex items-center justify-between gap-3 px-3.5 py-2.5" style="border-color:var(--line)"><div class="min-w-0"><div class="flex items-center gap-2 text-[13px]"><span class="dot" style="--c:${c}"></span>${label}</div>${sub ? `<div class="text-[11.5px] text-i3 mt-0.5 pl-4 leading-snug">${esc(sub)}</div>` : ""}</div><div class="flex items-baseline gap-3 shrink-0"><span class="num font-semibold text-[14px]">${val}</span>${Number.isFinite(v) ? `<span class="num text-[12px] w-14 text-right ${dirCls((v / s.price - 1) * 100)}">${pct((v / s.price - 1) * 100)}</span>` : ""}</div></div>`;
+      const rows = [
+        Number.isFinite(r.lo) ? line("var(--a-buy)", "参考买入区", r.buyLabel, `${fp(r.lo, s.price)}～${fp(r.hi, s.price)}`, NaN) : Number.isFinite(r.level) ? line("var(--a-buy)", "参考买入条件 · 站回", r.buyLabel, fp(r.level, s.price), r.level) : "",
+        Number.isFinite(r.stop) ? line("var(--a-reduce)", "参考止损", r.stopLabel, fp(r.stop, s.price), r.stop) : "",
+        Number.isFinite(r.res) ? line("var(--ink-2)", "上方压力", r.resLabel, fp(r.res, s.price), r.res) : line("var(--ink-2)", "上方压力", "现价上方 120 日内无结构高点", "无", NaN)].join("");
+      return `${head}<div class="mt-2.5 rounded-[12px] overflow-hidden" style="border:1px dashed var(--line)">
+        <div class="px-3.5 py-2 text-[12px] font-medium flex items-center gap-1.5" style="background:var(--bg-2);color:var(--wait)"><i class="ph-bold ph-warning"></i>参考位 · 当前不建议出手</div>
+        <div class="divide-y">${rows}</div>
+        <div class="px-3.5 py-2 text-[11.5px] text-i3 leading-relaxed" style="border-top:1px solid var(--line)">这些价位只用来回答「跌到哪里才值得再看、已持有的话哪里该走、往上哪里有压力」。不是买入信号，不参与仓位与盈亏比计算；条件满足后，下一次分析会给出正式入场区。</div></div>`;
+    }
     const rows = p.src === "V2"
       ? [["🎯", `计划入场区（${esc(p.strategy || "")}）`, NaN, "var(--a-buy)", Number.isFinite(p.zoneLo) ? `${fp(p.zoneLo, s.price)}～${fp(p.zoneHi, s.price)}` : ""], ["🎯", "计划入场价", p.entry, "var(--a-buy)"], ["🛑", `止损${Number.isFinite(p.stopPct) ? `（距入场 ${p.stopPct.toFixed(1)}%）` : ""}`, p.stop, "var(--a-reduce)"],
          Number.isFinite(p.target) ? ["🎊", `结构目标（${esc(p.targetLabel)}）`, p.target, "var(--ok)"] : ["🎊", "结构目标", NaN, "var(--ok)", "无 · 追踪止损退出"]]
@@ -1199,7 +1256,7 @@
         ${conflict(s) ? `<div class="mt-3 text-[12px] leading-relaxed rounded-[10px] px-3 py-2" style="background:color-mix(in srgb,var(--up) 10%,transparent);color:var(--up)"><i class="ph-bold ph-warning-diamond"></i> AI 结论「${esc(ADV[s.advice].label)}」与量化状态「${esc(ACT[s.plan.state].l)}」不一致。行动指令以量化为准，AI 观点见下方一句话决策与操作建议。</div>` : ""}
       </div>
       ${isLong ? ltSection(s) : ""}
-      ${isLong ? `<details class="pt-5 group"><summary class="list-none cursor-pointer lbl px-5 flex items-center gap-1.5 -mb-2">短线波段视角（策略 V2 · 入场 / 止损 / 盈亏比）<i class="ph ph-caret-down group-open:rotate-180 transition-transform"></i></summary>` : ""}
+      ${isLong ? `<div class="lbl px-5 pt-7 -mb-2">短线买卖点 · 策略 V2（入场 / 止损 / 盈亏比）</div>` : ""}
       ${actionCard(s)}
       ${whySection(s)}
       ${s.disc ? sec("选股依据", discBasis(s)) : ""}
@@ -1223,7 +1280,7 @@
           <div class="tray p-3"><div class="lbl">盈亏比 · 回踩入场</div><div class="num text-[20px] font-semibold mt-1.5">1:${p.rrEntry.toFixed(2)}</div></div>
           <div class="tray p-3"><div class="lbl">盈亏比 · 现价追入</div><div class="num text-[20px] font-semibold mt-1.5">1:${p.rrNow.toFixed(2)}</div></div></div>
           <p class="text-[11.5px] text-i3 mt-2.5 leading-relaxed">旧版计划（下一次分析后自动升级为 V2）。S 止损 · E 入场 · 1/2/3 目标 · R 压力。</p>` : ""}`)}
-      ${isLong ? `</details>` : ltSection(s)}
+      ${isLong ? "" : ltSection(s)}
       ${(s.week || s.month) ? sec("走势前瞻", `<div class="space-y-2">
         ${s.week ? `<div class="tray p-3.5"><div class="flex items-center gap-1.5 text-[12px] font-semibold mb-1.5"><i class="ph-bold ph-calendar-blank"></i>未来 1 周</div><div class="text-[13px] leading-relaxed text-i2">${esc(s.week)}</div></div>` : ""}
         ${s.month ? `<div class="tray p-3.5"><div class="flex items-center gap-1.5 text-[12px] font-semibold mb-1.5"><i class="ph-bold ph-calendar-dots"></i>未来 1 个月</div><div class="text-[13px] leading-relaxed text-i2">${esc(s.month)}</div></div>` : ""}</div>`) : ""}
