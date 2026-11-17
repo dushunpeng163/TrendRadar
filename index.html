@@ -246,7 +246,7 @@
 <script>
   /* ================= Config & state ================= */
   const TOPIC = "trendradar-mac-511";
-  const CACHE_KEY = "511-cache-v15";
+  const CACHE_KEY = "511-cache-v16";
   const ADV = {
     BUY:    { label: "买入 / 加仓", short: "买入", color: "var(--a-buy)",    icon: "ph-arrow-fat-line-up" },
     HOLD:   { label: "持有",       short: "持有", color: "var(--a-hold)",   icon: "ph-hand-grabbing" },
@@ -348,7 +348,7 @@
     if (refBuy || refStopM) {
       const rn = nums(refBuy.split("（")[0]);
       ref = { lo: rn.length > 1 ? rn[0] : NaN, hi: rn.length > 1 ? rn[1] : NaN, level: rn.length === 1 ? rn[0] : NaN,
-              buyLabel: ((refBuy.match(/（(.*)）\s*$/) || [])[1] || "").replace(/；参考位.*$/, ""),
+              buyLabel: ((refBuy.match(/（(.*)）\s*$/) || [])[1] || "").replace(/；参考位.*$/, "").replace(/^距现价[^；]*；/, ""),
               stop: refStopM ? +refStopM[1] : NaN, stopLabel: refStopM ? refStopM[2] : "", res: refResM ? +refResM[1] : NaN, resLabel: refResM ? refResM[2] : "" };
     }
     return {
@@ -753,8 +753,8 @@
     } else {
       const r = !Number.isFinite(p.entry) ? p.ref : null;   // 没有合格买点时的参考位
       const rBuy = !r ? "" : Number.isFinite(r.lo) ? `参考买入区 ${f(r.lo)}～${f(r.hi)}（${d(r.lo)}～${d(r.hi)}）：${r.buyLabel}` : Number.isFinite(r.level) ? `参考买入条件：站回 ${f(r.level)}（${d(r.level)}）上方，${r.buyLabel}` : "";
-      A.when = [...p.basis.split("；").filter(Boolean), rBuy, r ? "以上是参考位，不是买入信号；条件满足后下一次分析会给出正式入场区" : "下一次分析重新判断"].filter(Boolean);
-      A.how = [r ? "空仓：0 仓，当前不建议出手" : "0 仓", stopLine ? `若已持有：${stopLine}` : "",
+      A.when = [...p.basis.split("；").filter(Boolean), rBuy, r ? "以上是参考位，不是买入信号：现价不出手，价格到位后以当天的分析为准" : "下一次分析重新判断"].filter(Boolean);
+      A.how = [r ? "空仓：现价不出手，等价格到参考买入位再看" : "0 仓", stopLine ? `若已持有：${stopLine}` : "",
                r && Number.isFinite(r.stop) ? `若已持有：参考止损 ${f(r.stop)}（${d(r.stop)}）· ${r.stopLabel.replace(/（持仓者参考）/, "")}` : "",
                r && Number.isFinite(r.res) ? `上方压力 ${f(r.res)}（${r.resLabel}，${d(r.res)}）：反弹到这里容易受阻` : ""].filter(Boolean);
     }
@@ -898,7 +898,7 @@
       if (Number.isFinite(p.stop)) parts.push(`止损 ${f(p.stop)}`);
       if (!Number.isFinite(p.entry) && p.ref) {
         const r = p.ref;
-        parts.push("参考位（不建议出手）");
+        parts.push("参考位（现价不出手）");
         if (Number.isFinite(r.lo)) parts.push(`买入 ${f(r.lo)}～${f(r.hi)}`); else if (Number.isFinite(r.level)) parts.push(`站回 ${f(r.level)}`);
         if (Number.isFinite(r.stop)) parts.push(`止损 ${f(r.stop)}`);
         if (Number.isFinite(r.res)) parts.push(`压力 ${f(r.res)}`);
@@ -921,7 +921,7 @@
                parts: [["入场", Number.isFinite(p.zoneLo) ? `${f(p.zoneLo)}～${f(p.zoneHi)}` : f(p.entry)], ["止损", f(p.stop)], ...(Number.isFinite(tgt) ? [["目标", f(tgt)]] : [])] };
     }
     const r = p.ref;
-    if (r) return { ref: true, label: "参考位 · 当前不建议出手", color: "var(--ink-3)",
+    if (r) return { ref: true, label: "参考位 · 现价不出手，等到位", color: "var(--ink-3)",
                     parts: [Number.isFinite(r.lo) ? ["买入", `${f(r.lo)}～${f(r.hi)}`] : Number.isFinite(r.level) ? ["站回", f(r.level)] : null,
                             Number.isFinite(r.stop) ? ["止损", f(r.stop)] : null, Number.isFinite(r.res) ? ["压力", f(r.res)] : null].filter(Boolean) };
     return { ref: true, label: "暂无买点", color: "var(--ink-3)", parts: [], note: p.verdictText || "" };
@@ -1156,11 +1156,11 @@
       const rows = [
         Number.isFinite(r.lo) ? line("var(--a-buy)", "参考买入区", r.buyLabel, `${fp(r.lo, s.price)}～${fp(r.hi, s.price)}`, NaN) : Number.isFinite(r.level) ? line("var(--a-buy)", "参考买入条件 · 站回", r.buyLabel, fp(r.level, s.price), r.level) : "",
         Number.isFinite(r.stop) ? line("var(--a-reduce)", "参考止损", r.stopLabel, fp(r.stop, s.price), r.stop) : "",
-        Number.isFinite(r.res) ? line("var(--ink-2)", "上方压力", r.resLabel, fp(r.res, s.price), r.res) : line("var(--ink-2)", "上方压力", "现价上方 120 日内无结构高点", "无", NaN)].join("");
+        Number.isFinite(r.res) ? line("var(--ink-2)", "上方压力", r.resLabel, fp(r.res, s.price), r.res) : line("var(--ink-2)", "上方压力", "现价上方一天波幅之外，120 日内没有结构高点", "无", NaN)].join("");
       return `${head}<div class="mt-2.5 rounded-[12px] overflow-hidden" style="border:1px dashed var(--line)">
-        <div class="px-3.5 py-2 text-[12px] font-medium flex items-center gap-1.5" style="background:var(--bg-2);color:var(--wait)"><i class="ph-bold ph-warning"></i>参考位 · 当前不建议出手</div>
+        <div class="px-3.5 py-2 text-[12px] font-medium flex items-center gap-1.5" style="background:var(--bg-2);color:var(--wait)"><i class="ph-bold ph-warning"></i>参考位 · 现价不出手，等价格到位</div>
         <div class="divide-y">${rows}</div>
-        <div class="px-3.5 py-2 text-[11.5px] text-i3 leading-relaxed" style="border-top:1px solid var(--line)">这些价位只用来回答「跌到哪里才值得再看、已持有的话哪里该走、往上哪里有压力」。不是买入信号，不参与仓位与盈亏比计算；条件满足后，下一次分析会给出正式入场区。</div></div>`;
+        <div class="px-3.5 py-2 text-[11.5px] text-i3 leading-relaxed" style="border-top:1px solid var(--line)">这些价位回答「跌到哪里才值得再看、已持有的话哪里该走、往上哪里有压力」。按 T+1 取价：买入当天卖不了，所以每个价位离现价都至少隔一天的平均波幅${Number.isFinite(p.atrPct) ? `（约 ${p.atrPct.toFixed(1)}%）` : ""}，贴着现价的位置不列。不是买入信号，不参与仓位与盈亏比计算；价格到位后以当天的分析为准。</div></div>`;
     }
     const rows = p.src === "V2"
       ? [["🎯", `计划入场区（${esc(p.strategy || "")}）`, NaN, "var(--a-buy)", Number.isFinite(p.zoneLo) ? `${fp(p.zoneLo, s.price)}～${fp(p.zoneHi, s.price)}` : ""], ["🎯", "计划入场价", p.entry, "var(--a-buy)"], ["🛑", `止损${Number.isFinite(p.stopPct) ? `（距入场 ${p.stopPct.toFixed(1)}%）` : ""}`, p.stop, "var(--a-reduce)"],
