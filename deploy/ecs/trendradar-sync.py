@@ -2,9 +2,12 @@
 """把 TrendRadar 前端同步到本机 nginx 目录，并维护一份尽可能新的 snapshot.json。
 
 由 cron 每 5 分钟调用一次（见 setup_cn_web.sh）：
-  1. git pull 仓库（index.html / assets / snapshot.json）
-  2. 拉 ntfy 最新消息，与仓库 snapshot.json、本地 snapshot.json 三方合并（按消息 id 去重，保留 3 天）
+  1. git pull 仓库（index.html / assets）
+  2. 拉 ntfy 最新消息，与本地 snapshot.json 合并（按消息 id 去重，保留 3 天）
   3. 复制到 WEB_ROOT
+
+消息通道的主题名是私密的，只放在本机 /etc/trendradar/private.env（仅 root 可读，由 setup_cn_private.sh 生成），
+不写进这份公开的代码。没有这个文件时沿用旧的公开主题，保证升级前后页面不断数据。
 
 任一步失败只记录日志，不影响已上线的页面。
 """
@@ -18,8 +21,25 @@ import urllib.request
 
 SRC = os.environ.get("TR_SRC", "/opt/trendradar-src")
 WEB_ROOT = os.environ.get("TR_WEB_ROOT", "/var/www/trendradar")
-TOPIC = os.environ.get("TR_NTFY_TOPIC", "trendradar-mac-511")
-NTFY_BASE = os.environ.get("TR_NTFY_BASE", "https://ntfy.sh")
+PRIVATE_ENV = os.environ.get("TR_PRIVATE_ENV", "/etc/trendradar/private.env")
+LEGACY_TOPIC = "trendradar-mac-511"   # 旧的公开主题；配置了私密主题后不再读取
+
+
+def _private(key: str) -> str:
+    """读 PRIVATE_ENV 里的 KEY=VALUE；文件不存在或没有这个键返回空串。"""
+    try:
+        with open(PRIVATE_ENV, encoding="utf-8") as f:
+            for line in f:
+                k, sep, v = line.strip().partition("=")
+                if sep and k.strip() == key:
+                    return v.strip().strip('"').strip("'")
+    except OSError:
+        pass
+    return ""
+
+
+TOPIC = os.environ.get("TR_NTFY_TOPIC") or _private("TR_NTFY_TOPIC") or LEGACY_TOPIC
+NTFY_BASE = (os.environ.get("TR_NTFY_BASE") or _private("TR_NTFY_BASE") or "https://ntfy.sh").rstrip("/")
 KEEP_DAYS = 3
 
 
@@ -103,7 +123,7 @@ def main() -> int:
     git_pull()
     copy_site()
     n = merge_snapshot()
-    log(f"同步完成：snapshot {n} 条")
+    log(f"同步完成：snapshot {n} 条（主题：{'私密' if TOPIC != LEGACY_TOPIC else '旧的公开主题'}）")
     return 0
 
 

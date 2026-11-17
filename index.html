@@ -245,7 +245,6 @@
 
 <script>
   /* ================= Config & state ================= */
-  const TOPIC = "trendradar-mac-511";
   const CACHE_KEY = "511-cache-v16";
   const ADV = {
     BUY:    { label: "买入 / 加仓", short: "买入", color: "var(--a-buy)",    icon: "ph-arrow-fat-line-up" },
@@ -387,7 +386,7 @@
     return { src: "MA", entry, stop, targets: [tp], rrEntry: rrE, rrNow: rrN, resistance: NaN, resLabel: "", verdict: code, verdictText: VERDICT[code].t, atr: NaN, atrPct: NaN };
   }
 
-  /* ================= Parsing ntfy messages ================= */
+  /* ================= Parsing messages（来自 snapshot.json，格式同 ntfy 消息） ================= */
   const CARD_RE = /^📈\s*([🟢🟡🔴⚪🟠])?\s*(.+?)\s*\(([A-Za-z0-9.]+)\)(?:\s*\((\d+)\/(\d+)\))?\s*$/u;
 
   /* ---- 「为什么」层：检查清单 / 信号归因 / 时效 / 盘中护栏（解析契约：DSA 报告 Markdown） ---- */
@@ -669,20 +668,16 @@
     syncEl.textContent = "同步中…"; icon.classList.add("animate-spin");
     let liveOk = false;
     try {
-      // ntfy 在部分网络下会长时间无响应，8 秒内拿不到就放弃，转用本站 snapshot.json
-      const ac = new AbortController(); const timer = setTimeout(() => ac.abort(), 8000);
-      const res = await fetch(`https://ntfy.sh/${TOPIC}/json?poll=1&since=all`, { cache: "no-store", signal: ac.signal }).finally(() => clearTimeout(timer));
-      const raw = await res.text();
-      const messages = raw.trim().split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(x => x && x.event === "message");
-      liveOk = ingest(messages);
+      // 数据只从本站的 snapshot.json 读取（服务器每 2 分钟把最新分析合并进去）。
+      // 页面源码里不再放消息通道的地址：页面代码是公开的，写在这里等于把数据公开。
+      const ac = new AbortController(); const timer = setTimeout(() => ac.abort(), 15000);
+      const r = await fetch("./snapshot.json?" + Date.now(), { cache: "no-store", signal: ac.signal }).finally(() => clearTimeout(timer));
+      if (r.ok) { const messages = (await r.json()).filter(x => x && (!x.event || x.event === "message")); ingest(messages); liveOk = true; }
     } catch (e) { /* offline */ }
-    if (!state.stocks.length) {
-      try { const r = await fetch("./snapshot.json?" + Date.now()); if (r.ok) { ingest(await r.json()); state.fromSnapshot = true; } } catch (e) {}
-    }
     icon.classList.remove("animate-spin");
     dot.style.setProperty("--c", liveOk ? "var(--down)" : "var(--a-reduce)");
     const stale = state.asOf && Date.now() / 1000 - state.asOf > 36 * 3600;
-    syncEl.textContent = state.asOf ? `分析数据 ${fmtTs(state.asOf)}${liveOk ? "" : " · 离线缓存"}${stale ? " · 已过期" : ""}` : (liveOk ? "暂无分析数据" : "无法连接 ntfy");
+    syncEl.textContent = state.asOf ? `分析数据 ${fmtTs(state.asOf)}${liveOk ? "" : " · 离线缓存"}${stale ? " · 已过期" : ""}` : (liveOk ? "暂无分析数据" : "读取数据失败");
     renderAll();
   }
 
@@ -1010,7 +1005,7 @@
   function renderQuantBanner() {
     const el = document.getElementById("quant-banner"), q = state.quant;
     if (!q) {
-      if (state.fromSnapshot && state.stocks.length) { el.classList.remove("hidden"); el.innerHTML = `<div class="flex items-center gap-2 text-[12px] text-i3"><i class="ph ph-robot text-[15px]"></i>Qlib Top3 信号只在实时源（ntfy）可见，当前为快照数据</div>`; }
+      if (state.stocks.length) { el.classList.remove("hidden"); el.innerHTML = `<div class="flex items-center gap-2 text-[12px] text-i3"><i class="ph ph-robot text-[15px]"></i>暂时没有 Qlib Top3 信号（服务器只保留最近 3 天的消息）</div>`; }
       else el.classList.add("hidden");
       return;
     }
@@ -1093,7 +1088,7 @@
     if (!cur().length) {
       const empty = isDisc()
         ? `<div class="card p-8 text-center text-i2 text-[13px] leading-relaxed"><i class="ph ph-compass text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">还没有选股结果</div><div class="mt-1">到 DSA 仓库的 Actions 里运行「选股发现」，约 10 分钟后候选会出现在这里。</div></div>`
-        : `<div class="card p-8 text-center text-i2 text-[13px] leading-relaxed"><i class="ph ph-hourglass text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">暂无分析数据</div><div class="mt-1">ntfy 仅保留约 12 小时消息。等待下一次分析推送，或点击右上角刷新。</div></div>`;
+        : `<div class="card p-8 text-center text-i2 text-[13px] leading-relaxed"><i class="ph ph-hourglass text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">暂无分析数据</div><div class="mt-1">服务器只保留最近 3 天的分析。等待下一次分析完成，或点击右上角刷新。</div></div>`;
       document.getElementById("table-wrap").innerHTML = empty; document.getElementById("list-mobile").innerHTML = empty; return;
     }
     if (!list.length) {
