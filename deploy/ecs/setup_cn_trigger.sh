@@ -12,6 +12,7 @@
 #        工作日 08:20 仅个股、20:30 完整分析
 #        周二到周六 07:00 Qlib 量化，用前一交易日的数据。数据源 chenditc/investment_data 每天 18:00～次日 01:00
 #        才发布当天数据，所以不能在收盘当晚 18:20 跑，否则多数日子拿到的是前一天的数据
+#        工作日 16:30 选股发现（页面「选股推荐」的来源；不定时跑的话，候选过期后那一页就是空的）
 #   4. 可选：立刻触发一次做验证
 #
 # 令牌要求：Fine-grained token，只选 daily_stock_analysis 仓库，Repository permissions → Actions: Read and write。
@@ -21,6 +22,7 @@ set -euo pipefail
 REPO="${1:-dushunpeng163/daily_stock_analysis}"
 WORKFLOW="00-daily-analysis.yml"
 QLIB_WORKFLOW="30-quant-pipeline.yml"
+DISCOVER_WORKFLOW="10-discover.yml"
 BRANCH="main"
 GH_API="${GH_API:-https://api.github.com}"
 DESTDIR="${DESTDIR:-}"                       # 仅测试用：把文件装到别的目录
@@ -74,6 +76,7 @@ GH_TOKEN=$TOKEN
 REPO=$REPO
 WORKFLOW=$WORKFLOW
 QLIB_WORKFLOW=$QLIB_WORKFLOW
+DISCOVER_WORKFLOW=$DISCOVER_WORKFLOW
 BRANCH=$BRANCH
 GH_API=$GH_API
 LOG=$LOG
@@ -87,6 +90,7 @@ cat > "$BIN" <<EOF
 # 触发 DSA 的分析任务。用法:
 #   dsa-trigger <full|stocks-only|market-only> [force]   每日股票分析；force = 跳过交易日检查（节假日也跑）
 #   dsa-trigger qlib                                     Qlib 每日量化流水线
+#   dsa-trigger discover                                 选股发现（页面「选股推荐」）
 set -uo pipefail
 . "$ENV_FILE"
 EOF
@@ -100,7 +104,10 @@ case "$MODE" in
   qlib)
     WF="${QLIB_WORKFLOW:-30-quant-pipeline.yml}"; DESC="Qlib 每日量化流水线"
     BODY="{\"ref\":\"$BRANCH\"}" ;;
-  *) echo "模式只能是 full / stocks-only / market-only / qlib"; exit 2 ;;
+  discover)
+    WF="${DISCOVER_WORKFLOW:-10-discover.yml}"; DESC="选股发现"
+    BODY="{\"ref\":\"$BRANCH\"}" ;;
+  *) echo "模式只能是 full / stocks-only / market-only / qlib / discover"; exit 2 ;;
 esac
 RETRY_SLEEP="${RETRY_SLEEP:-60}"
 say() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
@@ -135,21 +142,24 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 30 20 * * 1-5 root /usr/local/bin/dsa-trigger full >/dev/null 2>&1
 # Qlib 用前一交易日的数据；数据源最晚次日 01:00 前后才发布，所以放在周二到周六早上
 0 7 * * 2-6 root /usr/local/bin/dsa-trigger qlib >/dev/null 2>&1
+# 选股发现：收盘后扫描全市场，结果显示在页面「选股推荐」
+30 16 * * 1-5 root /usr/local/bin/dsa-trigger discover >/dev/null 2>&1
 EOF
 chmod 644 "$CRON_FILE"
 
 echo "==> 4/4 验证"
 if [ -z "$DESTDIR" ] && [ -z "${DSA_NO_TEST:-}" ]; then
-  echo "    要不要立刻触发一次做验证？  1 = 仅个股分析（约 30 分钟）   2 = Qlib 量化（约 5 分钟）   直接回车 = 不触发"
-  read -rp "    请输入 1 / 2 / 回车: " ans </dev/tty || ans=""
+  echo "    要不要立刻触发一次做验证？  1 = 仅个股分析（约 30 分钟）   2 = Qlib 量化（约 5 分钟）   3 = 选股发现（约 15 分钟）   直接回车 = 不触发"
+  read -rp "    请输入 1 / 2 / 3 / 回车: " ans </dev/tty || ans=""
   case "${ans:-}" in
     1) "$BIN" stocks-only force && echo "    触发成功：GitHub 仓库的 Actions 页面会出现一条新的运行" || echo "    触发失败，原因见上一行" ;;
     2) "$BIN" qlib && echo "    触发成功：GitHub 仓库的 Actions 页面会出现一条新的 Qlib 运行" || echo "    触发失败，原因见上一行" ;;
-    *) echo "    已跳过。之后可手动执行: sudo dsa-trigger stocks-only   或   sudo dsa-trigger qlib" ;;
+    3) "$BIN" discover && echo "    触发成功：GitHub 仓库的 Actions 页面会出现一条新的「选股发现」运行" || echo "    触发失败，原因见上一行" ;;
+    *) echo "    已跳过。之后可手动执行: sudo dsa-trigger stocks-only / qlib / discover" ;;
   esac
 fi
 
 echo
-echo "完成。定时（北京时间）：工作日 08:20 仅个股、20:30 完整分析；周二到周六 07:00 Qlib 量化"
+echo "完成。定时（北京时间）：工作日 08:20 仅个股、16:30 选股发现、20:30 完整分析；周二到周六 07:00 Qlib 量化"
 echo "触发记录: tail -n 20 $LOG"
-echo "手动触发: sudo dsa-trigger full   （加 force 可跳过交易日检查）   Qlib: sudo dsa-trigger qlib"
+echo "手动触发: sudo dsa-trigger full   （加 force 可跳过交易日检查）   Qlib: sudo dsa-trigger qlib   选股: sudo dsa-trigger discover"
