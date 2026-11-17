@@ -524,6 +524,13 @@
   const DISC_RE = /^🔎\s*(.+?)\s*\(([A-Za-z0-9.]+)\)(?:\s*\((\d+)\/(\d+)\))?\s*$/u;
   function parseDiscover(messages) {
     const cards = messages.map(x => ({ x, m: (x.title || "").match(DISC_RE) })).filter(o => o.m);
+    // 没有合格候选的那次扫描只发一条汇总（正文带「无合格候选」），没有个股卡片：
+    // 它比最新的个股卡片还新时，名单就是空的，不能继续显示上一次的旧名单
+    const none = messages.filter(x => /^🔎\s*选股发现汇总/.test(x.title || "") && /无合格候选/.test(x.message || "")).sort((a, b) => b.time - a.time)[0];
+    if (none && !cards.some(o => o.x.time >= none.time)) {
+      const body = none.message || "";
+      return { list: [], ts: none.time, empty: { funnel: grab(body, /筛选\*\*[:：]\s*([^\n]+)/), why: grab(body, /说明\*\*[:：]\s*([^\n]+)/) } };
+    }
     if (!cards.length) return null;
     const latest = Math.max(...cards.map(o => o.x.time));
     const byCode = {};
@@ -568,7 +575,7 @@
       st.disc = disc;
       return st;
     }).filter(s => Number.isFinite(s.price) && s.price > 0);
-    return { list, ts: latest };
+    return { list, ts: latest, empty: null };
   }
 
   function parseMarket(messages) {
@@ -650,17 +657,17 @@
     let touched = false;
     const stocks = parseStocks(messages);
     if (stocks.length) { state.stocks = stocks; state.asOf = Math.max(...stocks.map(s => s.ts)); touched = true; }
-    const ds = parseDiscover(messages); if (ds) { state.discover = ds.list; state.discTs = ds.ts; touched = true; }
+    const ds = parseDiscover(messages); if (ds) { state.discover = ds.list; state.discTs = ds.ts; state.discEmpty = ds.empty; touched = true; }
     const mk = parseMarket(messages); if (mk) { state.market = mk; touched = true; }
     const rd = parseRadar(messages); if (rd) { state.radar = rd.domains; state.radarTs = rd.ts; touched = true; }
     const qt = parseQuant(messages); if (qt) { state.quant = qt; touched = true; }
     if (touched && persist) {
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ stocks: state.stocks, discover: state.discover, discTs: state.discTs, market: state.market, radar: state.radar, radarTs: state.radarTs, quant: state.quant, asOf: state.asOf })); } catch (e) {}
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ stocks: state.stocks, discover: state.discover, discTs: state.discTs, discEmpty: state.discEmpty || null, market: state.market, radar: state.radar, radarTs: state.radarTs, quant: state.quant, asOf: state.asOf })); } catch (e) {}
     }
     return touched;
   }
   function loadCache() {
-    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c) { Object.assign(state, { discover: c.discover || [], discTs: c.discTs, stocks: (c.stocks || []).filter(s => Number.isFinite(s.price) && s.price > 0), market: c.market || null, radar: c.radar || [], radarTs: c.radarTs, quant: c.quant || null, asOf: c.asOf || 0 }); return true; } } catch (e) {}
+    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c) { Object.assign(state, { discover: c.discover || [], discTs: c.discTs, discEmpty: c.discEmpty || null, stocks: (c.stocks || []).filter(s => Number.isFinite(s.price) && s.price > 0), market: c.market || null, radar: c.radar || [], radarTs: c.radarTs, quant: c.quant || null, asOf: c.asOf || 0 }); return true; } } catch (e) {}
     return false;
   }
   async function loadAll(manual) {
@@ -1000,7 +1007,7 @@
     const strategies = [...new Set(state.discover.flatMap(s => s.disc.hits))];
     el.innerHTML = `<div class="flex items-start gap-3"><div class="w-9 h-9 rounded-[11px] bg-s2 flex items-center justify-center shrink-0"><i class="ph-bold ph-compass text-[18px]"></i></div>
       <div class="min-w-0"><div class="text-[14px] font-semibold">全市场量化初筛 · 已排除你的自选</div>
-      <div class="text-[12px] text-i2 mt-1 leading-relaxed">${state.discover.length ? `${fmtTs(state.discTs)} · 策略：${esc(strategies.join("、"))} · 「买入」按 V2 可以出手归类 · 基本面过滤 · AI 复核 · 完整分析` : "运行「选股发现」后，候选会出现在这里。"}</div></div></div>`;
+      <div class="text-[12px] text-i2 mt-1 leading-relaxed">${state.discEmpty && !state.discover.length ? `${fmtTs(state.discTs)} · 这次扫描没有合格候选，不凑数` : state.discover.length ? `${fmtTs(state.discTs)} · 策略：${esc(strategies.join("、"))} · 「买入」按 V2 可以出手归类 · 基本面过滤 · AI 复核 · 完整分析` : "运行「选股发现」后，候选会出现在这里。"}</div></div></div>`;
   }
   function renderQuantBanner() {
     const el = document.getElementById("quant-banner"), q = state.quant;
@@ -1086,7 +1093,11 @@
       : sortedList(state.act === "ALL" ? base : base.filter(s => actGroup(s) === state.act));
 
     if (!cur().length) {
-      const empty = isDisc()
+      const none = isDisc() && state.discEmpty;
+      const noneDay = none && new Date(state.discTs * 1000).toDateString() === new Date().toDateString() ? "今天" : "最近一次扫描";
+      const empty = none
+        ? `<div class="card p-8 text-center text-i2 text-[13px] leading-relaxed"><i class="ph ph-prohibit text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">${noneDay}没有合格候选</div><div class="mt-1 num">${fmtTs(state.discTs)} 扫描</div>${none.funnel ? `<div class="mt-3">${esc(none.funnel)}</div>` : ""}${none.why ? `<div class="mt-1">${esc(none.why)}</div>` : ""}</div>`
+        : isDisc()
         ? `<div class="card p-8 text-center text-i2 text-[13px] leading-relaxed"><i class="ph ph-compass text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">还没有选股结果</div><div class="mt-1">到 DSA 仓库的 Actions 里运行「选股发现」，约 10 分钟后候选会出现在这里。</div></div>`
         : `<div class="card p-8 text-center text-i2 text-[13px] leading-relaxed"><i class="ph ph-hourglass text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">暂无分析数据</div><div class="mt-1">服务器只保留最近 3 天的分析。等待下一次分析完成，或点击右上角刷新。</div></div>`;
       document.getElementById("table-wrap").innerHTML = empty; document.getElementById("list-mobile").innerHTML = empty; return;
