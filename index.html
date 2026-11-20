@@ -661,8 +661,12 @@
     if (!ms.length) return null;
     const last = ms[ms.length - 1], text = last.message || "";
     const table = getTables(text).find(t => t.header[0] === "代码" && t.header.includes("目标权重"));
+    const col = name => table ? table.header.indexOf(name) : -1;
+    const cell = (r, name) => col(name) >= 0 ? r[col(name)] : "";
     const assets = table ? table.rows.map(r => ({
-      code: r[0], name: r[1], weight: num1(r[2]), mom6: num1(r[3]), mom12: num1(r[4]), status: r[5] || "",
+      code: cell(r, "代码"), name: cell(r, "名称"), price: num1(cell(r, "参考价")),
+      weight: num1(cell(r, "目标权重")), mom6: num1(cell(r, "6月动量")),
+      mom12: num1(cell(r, "12月动量")), status: cell(r, "操作") || cell(r, "状态"),
     })).filter(r => r.code) : [];
     const oos = text.match(/样本外\*\*[:：]\s*年化\s*([+-]?[\d.]+)%\s*\/\s*最大回撤\s*([+-]?[\d.]+)%\s*\/\s*沪深300年化\s*([+-]?[\d.]+)%/);
     return {
@@ -1333,6 +1337,11 @@
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
 
   /* ---------- ETF core rotation ---------- */
+  function setEtfCapital(value) {
+    const amount = Math.max(1000, Math.min(100000000, Number(value) || 100000));
+    localStorage.setItem("511-etf-capital", String(amount));
+    renderEtf();
+  }
   function renderEtf() {
     const el = document.getElementById("view-etf"), e = state.etf;
     if (!e) {
@@ -1341,6 +1350,8 @@
     }
     const tone = e.state === "进攻" ? "var(--ok)" : e.state === "防守" ? "var(--up)" : "var(--wait)";
     const held = e.assets.filter(a => a.weight > 0), total = held.reduce((s, a) => s + a.weight, 0);
+    const capital = Math.max(1000, Number(localStorage.getItem("511-etf-capital")) || 100000);
+    const money = value => `¥${Math.round(value).toLocaleString("zh-CN")}`;
     const block = (label, value, color) => `<div class="tray p-3.5"><div class="lbl">${label}</div><div class="num text-[22px] font-semibold mt-1.5" style="color:${color || "var(--ink-1)"}">${Number.isFinite(value) ? value.toFixed(1) + "%" : "—"}</div></div>`;
     el.innerHTML = `
       <div class="card p-4">
@@ -1352,7 +1363,19 @@
         <div class="text-[12px] text-i2 mt-3 leading-relaxed">月末收盘计算，下一交易日开盘调仓。目标年化波动 12%，单只ETF不超过35%。这是组合目标比例，不是盘中追涨指令。</div>
       </div>
       <div>
-        <div class="flex items-center justify-between px-1 mb-2"><h2 class="text-[14px] font-semibold">本期目标配置</h2><span class="text-[11px] text-i3">已配置 ${total.toFixed(1)}% · 其余现金</span></div>
+        <div class="card p-4 mb-3">
+          <div class="flex items-center justify-between gap-3"><div><div class="font-semibold text-[15px]">本期操作单</div><div class="text-[11px] text-i3 mt-1">输入专门用于这套策略的总资金</div></div>
+            <label class="tray px-3 py-2 flex items-center gap-1"><span class="text-i3">¥</span><input class="num bg-transparent outline-none w-24 text-right text-[15px]" type="number" min="1000" step="1000" value="${capital}" onchange="setEtfCapital(this.value)"></label>
+          </div>
+          <div class="mt-3 space-y-2">
+            ${held.map(a => { const target = capital * a.weight / 100, lots = Number.isFinite(a.price) && a.price > 0 ? Math.floor(target / a.price / 100) * 100 : null; return `<div class="tray p-3 flex items-center gap-3"><div class="flex-1 min-w-0"><div class="font-medium text-[13.5px]">${esc(a.name)} <span class="mono text-i3 text-[10.5px]">${esc(a.code)}</span></div><div class="text-[11px] text-i3 mt-1">目标市值 ${money(target)}${lots !== null ? ` · 约 ${lots} 股` : ""}</div></div><div class="text-right"><div class="font-semibold text-[14px]" style="color:${tone}">调仓至 ${a.weight.toFixed(1)}%</div><div class="text-[10.5px] text-i3 mt-1">目标−现有=买卖差额</div></div></div>`; }).join("")}
+            <div class="tray p-3 flex items-center justify-between"><div><div class="font-medium text-[13.5px]">现金</div><div class="text-[11px] text-i3 mt-1">不用于购买其他品种</div></div><div class="font-semibold text-[14px]">${money(capital * e.cash / 100)} · ${e.cash.toFixed(1)}%</div></div>
+          </div>
+          <div class="mt-3 p-3 rounded-[10px] text-[12px] leading-relaxed" style="background:var(--s2)"><b>怎么执行：</b>空仓按上面的目标市值买入；已有仓位先算“目标市值－当前市值”，正数买入、负数卖出。其余观察池ETF目标为0，应清仓或不买。ETF按100股整数倍取整，零头留作现金。</div>
+          ${capital < 300000 ? `<div class="mt-2 text-[11px] leading-relaxed" style="color:var(--up)"><b>小资金提示：</b>国债ETF一手约需1.4万元，策略资金低于约30万元时，整手取整会造成较大仓位偏差；页面股数仅作试算。历史回测按100万元执行。</div>` : ""}
+          <div class="text-[11px] text-i3 mt-2 leading-relaxed">只在月末信号更新后的下一交易日执行一次，不因盘中涨跌临时换仓。若已经错过执行日，不追涨，等下一次月末信号。</div>
+        </div>
+        <div class="flex items-center justify-between px-1 mb-2"><h2 class="text-[14px] font-semibold">目标配置依据</h2><span class="text-[11px] text-i3">已配置 ${total.toFixed(1)}% · 其余现金</span></div>
         ${held.length ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">${held.map(a => `<div class="card p-4">
           <div class="flex items-start justify-between gap-3"><div><div class="font-semibold text-[14px]">${esc(a.name)}</div><div class="mono text-[11px] text-i3 mt-0.5">${esc(a.code)}</div></div><div class="num text-[23px] font-semibold" style="color:${tone}">${a.weight.toFixed(1)}%</div></div>
           <div class="bar mt-3"><span style="width:${Math.min(100, a.weight / 35 * 100)}%;background:${tone}"></span></div>
@@ -1360,8 +1383,8 @@
         </div>`).join("")}</div>` : `<div class="card p-6 text-center text-i2 text-[13px]">没有ETF同时通过年线和动量过滤，本期保持现金。</div>`}
       </div>
       <div class="card overflow-hidden"><div class="px-4 py-3 border-b" style="border-color:var(--line)"><div class="font-semibold text-[14px]">全部观察池</div></div>
-        <div class="overflow-x-auto"><table class="dtable" style="min-width:720px"><thead><tr><th>ETF</th><th class="r">目标仓位</th><th class="r">6月动量</th><th class="r">12月动量</th><th>模型状态</th></tr></thead><tbody>
-          ${e.assets.map(a => `<tr><td><div class="font-medium">${esc(a.name)}</div><div class="mono text-[10.5px] text-i3">${esc(a.code)}</div></td><td class="r num font-medium">${a.weight.toFixed(1)}%</td><td class="r num ${dirCls(a.mom6)}">${pct(a.mom6)}</td><td class="r num ${dirCls(a.mom12)}">${pct(a.mom12)}</td><td class="text-i2">${esc(a.status)}</td></tr>`).join("")}
+        <div class="overflow-x-auto"><table class="dtable" style="min-width:720px"><thead><tr><th>ETF</th><th class="r">目标仓位</th><th class="r">6月动量</th><th class="r">12月动量</th><th>操作</th></tr></thead><tbody>
+          ${e.assets.map(a => `<tr><td><div class="font-medium">${esc(a.name)}</div><div class="mono text-[10.5px] text-i3">${esc(a.code)}</div></td><td class="r num font-medium">${a.weight.toFixed(1)}%</td><td class="r num ${dirCls(a.mom6)}">${pct(a.mom6)}</td><td class="r num ${dirCls(a.mom12)}">${pct(a.mom12)}</td><td class="text-i2">${a.weight > 0 ? `调仓至 ${a.weight.toFixed(1)}%` : "清仓/不买"}</td></tr>`).join("")}
         </tbody></table></div>
       </div>
       ${e.oos ? `<div class="card p-4"><div class="lbl">冻结样本外 · 2022至今</div><div class="grid grid-cols-3 gap-3 mt-3 text-center"><div><div class="num text-[18px] font-semibold">${e.oos.cagr.toFixed(1)}%</div><div class="text-[10.5px] text-i3 mt-1">策略年化</div></div><div><div class="num text-[18px] font-semibold">${e.oos.dd.toFixed(1)}%</div><div class="text-[10.5px] text-i3 mt-1">最大回撤</div></div><div><div class="num text-[18px] font-semibold">${e.oos.bench.toFixed(1)}%</div><div class="text-[10.5px] text-i3 mt-1">沪深300年化</div></div></div><div class="text-[11px] text-i3 mt-3 leading-relaxed">历史结果不代表未来。2019–2021牛市阶段策略年化约11%，明显低于沪深300；该策略优先控制回撤，不保证每个阶段跑赢股票指数。</div></div>` : ""}
