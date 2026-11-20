@@ -189,6 +189,7 @@
     <nav class="seg scroll-x mb-4 w-full md:w-fit" id="nav">
       <button data-v="desk" class="on" onclick="setView('desk')"><i class="ph ph-squares-four"></i>自选看板</button>
       <button data-v="discover" onclick="setView('discover')"><i class="ph ph-compass"></i>选股推荐</button>
+      <button data-v="etf" onclick="setView('etf')"><i class="ph ph-arrows-left-right"></i>ETF轮动</button>
       <button data-v="market" onclick="setView('market')"><i class="ph ph-globe-hemisphere-east"></i>大盘复盘</button>
       <button data-v="radar" onclick="setView('radar')"><i class="ph ph-radar"></i>情报雷达</button>
     </nav>
@@ -223,6 +224,9 @@
       <div id="list-mobile" class="md:hidden space-y-2"></div>
       <p id="foot-note" class="text-[11px] text-i3 leading-relaxed px-1">涨红跌绿。行动指令以策略 V2 为准：止损 = min(入场 − 1.5×ATR, 10 日低点 − 0.3×ATR)，目标取上方最近的结构压力，盈亏比 = (目标 − 入场)/(入场 − 止损)；AI 结论只作标注，与量化冲突时卡片会标出。检查清单 ● 通过 ● 警示 ● 不通过 ○ 数据缺失。「未解析」表示报告格式变化导致页面没读到，不代表报告缺项。仅作研究参考，不构成投资建议。</p>
     </section>
+
+    <!-- ETF CORE ROTATION -->
+    <section id="view-etf" class="hidden space-y-4"></section>
 
     <!-- MARKET -->
     <section id="view-market" class="hidden space-y-4"></section>
@@ -262,7 +266,7 @@
     skip:    { t: "不出手",     c: "var(--skip)",  i: "ph-prohibit" },
     na:      { t: "不适用",     c: "var(--ink-3)", i: "ph-minus-circle" },
   };
-  const state = { horizon: localStorage.getItem("511-horizon") || "long", lt: "ALL", source: "watch", risk: parseFloat(localStorage.getItem("511-risk")) || 1, openCode: null, view: "desk", act: "ALL", type: "ALL", q: "", sort: "act", dir: -1, stocks: [], discover: [], discFilter: "ALL", market: null, radar: [], quant: null, asOf: 0, radarId: "ALL" };
+  const state = { horizon: localStorage.getItem("511-horizon") || "long", lt: "ALL", source: "watch", risk: parseFloat(localStorage.getItem("511-risk")) || 1, openCode: null, view: "desk", act: "ALL", type: "ALL", q: "", sort: "act", dir: -1, stocks: [], discover: [], discFilter: "ALL", market: null, radar: [], quant: null, etf: null, asOf: 0, radarId: "ALL" };
 
   /* ================= Helpers ================= */
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -652,6 +656,25 @@
     };
   }
 
+  function parseEtfRotation(messages) {
+    const ms = messages.filter(x => /^🧭\s*ETF核心轮动/.test(x.title || "")).sort((a, b) => a.time - b.time);
+    if (!ms.length) return null;
+    const last = ms[ms.length - 1], text = last.message || "";
+    const table = getTables(text).find(t => t.header[0] === "代码" && t.header.includes("目标权重"));
+    const assets = table ? table.rows.map(r => ({
+      code: r[0], name: r[1], weight: num1(r[2]), mom6: num1(r[3]), mom12: num1(r[4]), status: r[5] || "",
+    })).filter(r => r.code) : [];
+    const oos = text.match(/样本外\*\*[:：]\s*年化\s*([+-]?[\d.]+)%\s*\/\s*最大回撤\s*([+-]?[\d.]+)%\s*\/\s*沪深300年化\s*([+-]?[\d.]+)%/);
+    return {
+      ts: last.time, date: grab(text, /信号日期\*\*[:：]\s*([^\n]+)/),
+      gate: /模型门禁\*\*[:：]\s*通过/.test(text), state: grab(text, /当前环境\*\*[:：]\s*([^\n]+)/),
+      equity: num1(grab(text, /权益仓位\*\*[:：]\s*([^\n]+)/)),
+      defensive: num1(grab(text, /防守仓位\*\*[:：]\s*([^\n]+)/)),
+      cash: num1(grab(text, /现金仓位\*\*[:：]\s*([^\n]+)/)),
+      assets, oos: oos ? { cagr: +oos[1], dd: +oos[2], bench: +oos[3] } : null, raw: text,
+    };
+  }
+
   /* ================= Data loading ================= */
   function ingest(messages, persist = true) {
     let touched = false;
@@ -661,13 +684,14 @@
     const mk = parseMarket(messages); if (mk) { state.market = mk; touched = true; }
     const rd = parseRadar(messages); if (rd) { state.radar = rd.domains; state.radarTs = rd.ts; touched = true; }
     const qt = parseQuant(messages); if (qt) { state.quant = qt; touched = true; }
+    const etf = parseEtfRotation(messages); if (etf) { state.etf = etf; touched = true; }
     if (touched && persist) {
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ stocks: state.stocks, discover: state.discover, discTs: state.discTs, discEmpty: state.discEmpty || null, market: state.market, radar: state.radar, radarTs: state.radarTs, quant: state.quant, asOf: state.asOf })); } catch (e) {}
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ stocks: state.stocks, discover: state.discover, discTs: state.discTs, discEmpty: state.discEmpty || null, market: state.market, radar: state.radar, radarTs: state.radarTs, quant: state.quant, etf: state.etf, asOf: state.asOf })); } catch (e) {}
     }
     return touched;
   }
   function loadCache() {
-    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c) { Object.assign(state, { discover: c.discover || [], discTs: c.discTs, discEmpty: c.discEmpty || null, stocks: (c.stocks || []).filter(s => Number.isFinite(s.price) && s.price > 0), market: c.market || null, radar: c.radar || [], radarTs: c.radarTs, quant: c.quant || null, asOf: c.asOf || 0 }); return true; } } catch (e) {}
+    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c) { Object.assign(state, { discover: c.discover || [], discTs: c.discTs, discEmpty: c.discEmpty || null, stocks: (c.stocks || []).filter(s => Number.isFinite(s.price) && s.price > 0), market: c.market || null, radar: c.radar || [], radarTs: c.radarTs, quant: c.quant || null, etf: c.etf || null, asOf: c.asOf || 0 }); return true; } } catch (e) {}
     return false;
   }
   async function loadAll(manual) {
@@ -1308,6 +1332,42 @@
   function closeDrawer() { state.openCode = null; const d = document.getElementById("drawer"); d.classList.remove("open"); d.setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
 
+  /* ---------- ETF core rotation ---------- */
+  function renderEtf() {
+    const el = document.getElementById("view-etf"), e = state.etf;
+    if (!e) {
+      el.innerHTML = `<div class="card p-8 text-center text-i2 text-[13px]"><i class="ph ph-arrows-left-right text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">暂无ETF轮动信号</div><div class="mt-1">完整分析运行后自动更新。</div></div>`;
+      return;
+    }
+    const tone = e.state === "进攻" ? "var(--ok)" : e.state === "防守" ? "var(--up)" : "var(--wait)";
+    const held = e.assets.filter(a => a.weight > 0), total = held.reduce((s, a) => s + a.weight, 0);
+    const block = (label, value, color) => `<div class="tray p-3.5"><div class="lbl">${label}</div><div class="num text-[22px] font-semibold mt-1.5" style="color:${color || "var(--ink-1)"}">${Number.isFinite(value) ? value.toFixed(1) + "%" : "—"}</div></div>`;
+    el.innerHTML = `
+      <div class="card p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div><div class="lbl">ETF核心轮动 · 当前环境</div><div class="text-[26px] font-semibold mt-1.5" style="color:${tone}">${esc(e.state || "—")}</div><div class="mono text-[11px] text-i3 mt-1">${esc(e.date || fmtTs(e.ts))} · 更新 ${fmtTs(e.ts)}</div></div>
+          <span class="chip" style="--c:${e.gate ? "var(--ok)" : "var(--up)"}">${e.gate ? "历史门禁通过" : "研究观察中"}</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mt-4">${block("权益仓位", e.equity, "var(--ok)")}${block("防守仓位", e.defensive, "var(--wait)")}${block("现金仓位", e.cash, "var(--ink-2)")}</div>
+        <div class="text-[12px] text-i2 mt-3 leading-relaxed">月末收盘计算，下一交易日开盘调仓。目标年化波动 12%，单只ETF不超过35%。这是组合目标比例，不是盘中追涨指令。</div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between px-1 mb-2"><h2 class="text-[14px] font-semibold">本期目标配置</h2><span class="text-[11px] text-i3">已配置 ${total.toFixed(1)}% · 其余现金</span></div>
+        ${held.length ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">${held.map(a => `<div class="card p-4">
+          <div class="flex items-start justify-between gap-3"><div><div class="font-semibold text-[14px]">${esc(a.name)}</div><div class="mono text-[11px] text-i3 mt-0.5">${esc(a.code)}</div></div><div class="num text-[23px] font-semibold" style="color:${tone}">${a.weight.toFixed(1)}%</div></div>
+          <div class="bar mt-3"><span style="width:${Math.min(100, a.weight / 35 * 100)}%;background:${tone}"></span></div>
+          <div class="flex justify-between mt-2 text-[11.5px] text-i3"><span>6月 <b class="${dirCls(a.mom6)}">${pct(a.mom6)}</b></span><span>12月 <b class="${dirCls(a.mom12)}">${pct(a.mom12)}</b></span></div>
+        </div>`).join("")}</div>` : `<div class="card p-6 text-center text-i2 text-[13px]">没有ETF同时通过年线和动量过滤，本期保持现金。</div>`}
+      </div>
+      <div class="card overflow-hidden"><div class="px-4 py-3 border-b" style="border-color:var(--line)"><div class="font-semibold text-[14px]">全部观察池</div></div>
+        <div class="overflow-x-auto"><table class="dtable" style="min-width:720px"><thead><tr><th>ETF</th><th class="r">目标仓位</th><th class="r">6月动量</th><th class="r">12月动量</th><th>模型状态</th></tr></thead><tbody>
+          ${e.assets.map(a => `<tr><td><div class="font-medium">${esc(a.name)}</div><div class="mono text-[10.5px] text-i3">${esc(a.code)}</div></td><td class="r num font-medium">${a.weight.toFixed(1)}%</td><td class="r num ${dirCls(a.mom6)}">${pct(a.mom6)}</td><td class="r num ${dirCls(a.mom12)}">${pct(a.mom12)}</td><td class="text-i2">${esc(a.status)}</td></tr>`).join("")}
+        </tbody></table></div>
+      </div>
+      ${e.oos ? `<div class="card p-4"><div class="lbl">冻结样本外 · 2022至今</div><div class="grid grid-cols-3 gap-3 mt-3 text-center"><div><div class="num text-[18px] font-semibold">${e.oos.cagr.toFixed(1)}%</div><div class="text-[10.5px] text-i3 mt-1">策略年化</div></div><div><div class="num text-[18px] font-semibold">${e.oos.dd.toFixed(1)}%</div><div class="text-[10.5px] text-i3 mt-1">最大回撤</div></div><div><div class="num text-[18px] font-semibold">${e.oos.bench.toFixed(1)}%</div><div class="text-[10.5px] text-i3 mt-1">沪深300年化</div></div></div><div class="text-[11px] text-i3 mt-3 leading-relaxed">历史结果不代表未来。2019–2021牛市阶段策略年化约11%，明显低于沪深300；该策略优先控制回撤，不保证每个阶段跑赢股票指数。</div></div>` : ""}
+    `;
+  }
+
   /* ---------- Market ---------- */
   function renderMarket() {
     const el = document.getElementById("view-market"), m = state.market;
@@ -1367,7 +1427,7 @@
       if (state.source !== next) { state.source = next; state.act = "ALL"; state.sort = "act"; state.dir = -1; state.q = ""; document.getElementById("q").value = ""; renderDesk(); }
     }
     document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
-    ["desk", "market", "radar"].forEach(k => document.getElementById("view-" + k).classList.toggle("hidden", k !== page));
+    ["desk", "etf", "market", "radar"].forEach(k => document.getElementById("view-" + k).classList.toggle("hidden", k !== page));
     window.scrollTo({ top: 0 });
   }
   function toggleTheme() {
@@ -1377,10 +1437,10 @@
     document.querySelector('meta[name="theme-color"]').content = dark ? "#000000" : "#F5F5F2";
   }
   function renderAll() {
-    renderDesk(); renderMarket(); renderRadar();
+    renderDesk(); renderEtf(); renderMarket(); renderRadar();
     if (!state.hashDone && location.hash.length > 1) {
       const c = decodeURIComponent(location.hash.slice(1));
-      if (c === "market" || c === "radar" || c === "discover") { state.hashDone = true; setView(c); }
+      if (c === "market" || c === "radar" || c === "discover" || c === "etf") { state.hashDone = true; setView(c); }
       else if (state.stocks.length) { state.hashDone = true; if (state.stocks.some(s => s.code === c)) openDrawer(c); }
     }
   }
