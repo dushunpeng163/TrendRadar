@@ -669,7 +669,7 @@
       mom12: num1(cell(r, "12月动量")), status: cell(r, "操作") || cell(r, "状态"),
     })).filter(r => r.code) : [];
     const oos = text.match(/样本外\*\*[:：]\s*年化\s*([+-]?[\d.]+)%\s*\/\s*最大回撤\s*([+-]?[\d.]+)%\s*\/\s*沪深300年化\s*([+-]?[\d.]+)%/);
-    return {
+    const parsed = {
       ts: last.time, date: grab(text, /信号日期\*\*[:：]\s*([^\n]+)/),
       gate: /模型门禁\*\*[:：]\s*通过/.test(text), state: grab(text, /当前环境\*\*[:：]\s*([^\n]+)/),
       equity: num1(grab(text, /权益仓位\*\*[:：]\s*([^\n]+)/)),
@@ -677,6 +677,14 @@
       cash: num1(grab(text, /现金仓位\*\*[:：]\s*([^\n]+)/)),
       assets, oos: oos ? { cagr: +oos[1], dd: +oos[2], bench: +oos[3] } : null, raw: text,
     };
+    return validEtfRotation(parsed) ? parsed : null;
+  }
+  function validEtfRotation(value) {
+    return !!value
+      && typeof value.state === "string" && value.state.length > 0
+      && Number.isFinite(value.equity) && Number.isFinite(value.defensive) && Number.isFinite(value.cash)
+      && Array.isArray(value.assets) && value.assets.length > 0
+      && value.assets.every(a => a && a.code && Number.isFinite(a.weight));
   }
 
   /* ================= Data loading ================= */
@@ -695,7 +703,7 @@
     return touched;
   }
   function loadCache() {
-    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c) { Object.assign(state, { discover: c.discover || [], discTs: c.discTs, discEmpty: c.discEmpty || null, stocks: (c.stocks || []).filter(s => Number.isFinite(s.price) && s.price > 0), market: c.market || null, radar: c.radar || [], radarTs: c.radarTs, quant: c.quant || null, etf: c.etf || null, asOf: c.asOf || 0 }); return true; } } catch (e) {}
+    try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c) { Object.assign(state, { discover: c.discover || [], discTs: c.discTs, discEmpty: c.discEmpty || null, stocks: (c.stocks || []).filter(s => Number.isFinite(s.price) && s.price > 0), market: c.market || null, radar: c.radar || [], radarTs: c.radarTs, quant: c.quant || null, etf: validEtfRotation(c.etf) ? c.etf : null, asOf: c.asOf || 0 }); return true; } } catch (e) {}
     return false;
   }
   async function loadAll(manual) {
