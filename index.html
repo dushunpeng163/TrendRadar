@@ -53,12 +53,12 @@
     .up { color: var(--up); } .down { color: var(--down); } .flat { color: var(--ink-2); }
     .card { background: var(--bg-1); border: 1px solid var(--line); border-radius: 16px; }
     .tray { background: var(--bg-2); border-radius: 12px; }
-    .lbl { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+    .lbl { font-size: 12px; color: var(--ink-2); font-weight: 500; }
     .tap { transition: transform .35s var(--ease), background .25s var(--ease), color .25s var(--ease), opacity .25s; }
     .tap:active { transform: scale(.97); }
 
     /* chips */
-    .chip { display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 8px; border-radius:7px; font-size:11.5px; font-weight:600; white-space:nowrap;
+    .chip { display:inline-flex; align-items:center; gap:5px; height:24px; padding:0 8px; border-radius:7px; font-size:12px; font-weight:600; white-space:nowrap;
             background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
     .chip i { font-size: 12px; }
     /* 抽屉里的长文本标签允许换行，避免把抽屉撑出横向滚动 */
@@ -78,7 +78,7 @@
 
     /* table */
     table.dtable { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
-    table.dtable th { position:sticky; top:0; z-index:2; background: var(--bg-1); text-align:left; padding:10px 12px; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color: var(--ink-3); font-weight:500; border-bottom:1px solid var(--line); white-space:nowrap; user-select:none; }
+    table.dtable th { position:sticky; top:0; z-index:2; background: var(--bg-1); text-align:left; padding:10px 12px; font-size:12px; color: var(--ink-2); font-weight:500; border-bottom:1px solid var(--line); white-space:nowrap; user-select:none; }
     table.dtable th.sort { cursor:pointer; } table.dtable th.sort:hover { color: var(--ink-1); }
     table.dtable th.r, table.dtable td.r { text-align:right; }
     table.dtable td { padding:12px; border-bottom:1px solid var(--line); vertical-align:middle; white-space:nowrap; }
@@ -134,8 +134,8 @@
     @keyframes fi { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
     .skeleton { background: linear-gradient(90deg, var(--bg-2), var(--bg-3), var(--bg-2)); background-size:200% 100%; animation: sk 1.4s infinite; border-radius:10px; }
     @keyframes sk { to { background-position:-200% 0; } }
-    input.search { background: var(--bg-1); border:1px solid var(--line); border-radius:12px; height:42px; padding:0 12px 0 36px; font-size:13px; color: var(--ink-1); width:100%; }
-    select.sel { background: var(--bg-1); border:1px solid var(--line); border-radius:12px; height:42px; padding:0 10px; font-size:13px; color: var(--ink-1); }
+    input.search { background: var(--bg-1); border:1px solid var(--line); border-radius:12px; height:44px; padding:0 12px 0 36px; font-size:16px; color: var(--ink-1); width:100%; }
+    select.sel { background: var(--bg-1); border:1px solid var(--line); border-radius:12px; height:44px; padding:0 10px; font-size:16px; color: var(--ink-1); }
     .safe-b { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
 
     /* why layer */
@@ -163,6 +163,93 @@
     table.dtable td.wrap { white-space:normal; min-width:170px; max-width:240px; }
     table.dtable td.act { white-space:normal; max-width:200px; }
     table.dtable td.act .chip { white-space:nowrap; }
+
+    /* ===== 2026-11 改版：今日结论 / 三个判断矩阵 / ETF 图 ===== */
+    #nav button { height:40px; padding:0 13px; font-size:14px; }
+    .pill.lg { height:38px; padding:0 13px; border-radius:11px; font-size:14px; position:relative; }
+    .pill.lg::after { content:""; position:absolute; inset:-3px 0; }
+    .today { padding:6px 2px 2px; }
+    .t-date { font-size:13px; color:var(--ink-2); }
+    .t-h1 { font-family:'PingFang SC',Geist,-apple-system,sans-serif; font-weight:600; font-size:clamp(31px,8.6vw,54px); line-height:1.15; letter-spacing:-.015em; margin:6px 0 12px; text-wrap:balance; }
+    .t-h1 span { display:inline-block; }
+    .t-basis { font-size:15px; line-height:1.65; color:var(--ink-2); max-width:42em; }
+    .t-basis b { color:var(--ink-1); font-weight:600; }
+    .t-warn { color:var(--a-reduce); font-weight:600; }
+    .t-cap { font-size:12px; color:var(--ink-2); margin:6px 4px 0; }
+    .axis { position:relative; height:92px; margin:16px 4px 0; max-width:760px; }
+    .axis .ln { position:absolute; left:0; right:0; top:22px; border-top:1px solid var(--bg-4); }
+    .axis .op { position:absolute; top:19px; height:7px; border-radius:2px; background:var(--bg-4); }
+    .axis .rn { position:absolute; top:16px; width:13px; height:13px; border-radius:50%; border:2px solid var(--ink-2); background:var(--bg-0); transform:translateX(-50%); }
+    .axis .rn.ok { background:var(--ink-1); border-color:var(--ink-1); }
+    .axis .rn.over { background:var(--ink-3); border-color:var(--ink-3); }
+    .axis .rn.late { border-color:var(--a-reduce); }
+    .axis .cp { position:absolute; top:36px; font-size:12px; line-height:1.45; color:var(--ink-2); white-space:nowrap; }
+    .axis .cp b { display:block; color:var(--ink-1); font-weight:600; font-size:13px; }
+    .axis .cp.m { transform:translateX(-50%); text-align:center; } .axis .cp.r { transform:translateX(-100%); text-align:right; }
+    .axis .nw { position:absolute; top:0; height:30px; border-left:2px solid var(--ink-1); }
+    .axis .nw span { position:absolute; top:-4px; left:5px; font-size:12px; color:var(--ink-1); white-space:nowrap; }
+    .axis .nw.r span { left:auto; right:5px; }
+
+    .legend { display:flex; flex-wrap:wrap; gap:4px 14px; justify-content:flex-end; font-size:12px; color:var(--ink-2); padding:0 4px; }
+    .legend span { display:inline-flex; align-items:center; gap:5px; }
+    svg.g { width:15px; height:15px; flex:none; }
+    .mx { --cols:minmax(0,1fr) 42px 42px 42px 70px; }
+    .mx-hd, .mx-b { display:grid; grid-template-columns:var(--cols); align-items:center; width:100%; text-align:left; }
+    .mx-hd { position:sticky; top:56px; z-index:5; background:var(--bg-0); padding:8px 13px 6px; font-size:12px; color:var(--ink-2); }
+    .mx-hd span { text-align:center; } .mx-hd span:first-child { text-align:left; }
+    .mx-r { background:var(--bg-1); border:1px solid var(--line); border-radius:14px; margin-bottom:6px; overflow:hidden; }
+    .mx-r.red { box-shadow:inset 3px 0 0 var(--a-reduce); } .mx-r.buy { box-shadow:inset 3px 0 0 var(--a-buy); }
+    .mx-b { padding:10px 12px; min-height:60px; row-gap:7px; }
+    .mx-who { min-width:0; }
+    .mx-who b { display:block; font-weight:600; font-size:16px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mx-who i { display:block; font-style:normal; font-size:13px; color:var(--ink-2); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mx-c { display:flex; justify-content:center; }
+    .mx-v { justify-self:center; font-size:13px; font-weight:600; padding:4px 8px; border-radius:7px; white-space:nowrap; }
+    .mx-v.red { background:var(--a-reduce); color:#1A1300; } .mx-v.buy { background:var(--a-buy); color:#04142B; }
+    .mx-v.hold { box-shadow:inset 0 0 0 1px var(--bg-4); } .mx-v.watch { color:var(--ink-2); font-weight:500; }
+    .mx-say { grid-column:1 / -1; font-size:14px; line-height:1.55; color:var(--ink-2); display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+    .mx-r.hot .mx-say { color:var(--ink-1); }
+    .mx-w, .mx-cd { display:none; }
+    @media (min-width:900px) {
+      .mx { --cols:210px 150px 64px 64px 64px 96px minmax(0,1fr); }
+      .mx-w { display:block; } .mx-cd { display:inline; } .mx-pm, .mx-say { display:none; }
+      .mx-hd .mx-p { text-align:right; padding-right:22px; } .mx-hd .mx-n { text-align:left; }
+      .mx-price { text-align:right; padding-right:22px; font-size:15px; } .mx-price span { margin-left:10px; font-size:14px; }
+      .mx-note { font-size:14px; line-height:1.5; color:var(--ink-2); padding-right:6px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+      .mx-r.hot .mx-note { color:var(--ink-1); }
+    }
+
+    .e-h1 { font-family:'PingFang SC',Geist,-apple-system,sans-serif; font-weight:600; font-size:clamp(25px,6vw,40px); line-height:1.25; letter-spacing:-.01em; margin:6px 0 0; text-wrap:balance; }
+    .e-bar { display:flex; height:54px; border-radius:12px; overflow:hidden; margin-top:16px; gap:2px; }
+    .e-bar div { display:flex; flex-direction:column; justify-content:center; padding:0 12px; min-width:0; font-size:13px; line-height:1.25; white-space:nowrap; overflow:hidden; }
+    .e-bar b { font-family:'Geist Mono',ui-monospace,monospace; font-weight:600; font-size:19px; }
+    .e-bar .cash { color:var(--ink-1); background:repeating-linear-gradient(135deg,var(--bg-3) 0 6px,var(--bg-2) 6px 12px); }
+    .e-sec { font-size:18px; font-weight:600; margin:26px 2px 4px; }
+    .e-lead { font-size:14px; line-height:1.6; color:var(--ink-2); margin:0 2px 10px; max-width:44em; }
+    .e-cap { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--ink-2); margin:8px 2px 10px; }
+    .e-cap input { width:136px; height:44px; padding:0 10px; background:var(--bg-1); border:1px solid var(--line); border-radius:11px; color:var(--ink-1); font:500 16px 'Geist Mono',ui-monospace,monospace; }
+    .e-cap input:focus { border-color:var(--a-buy); }
+    .e-op { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 12px; background:var(--bg-1); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:6px; }
+    .e-op b { font-weight:600; font-size:16px; } .e-op > .num { font-size:16px; font-weight:600; text-align:right; }
+    .e-op i { grid-column:1 / -1; font-style:normal; font-size:14px; line-height:1.5; color:var(--ink-2); }
+    .e-txt { font-size:14px; line-height:1.65; color:var(--ink-2); margin:10px 2px 0; max-width:44em; } .e-txt b { color:var(--ink-1); font-weight:600; }
+    .mo { --mc:112px minmax(0,1fr) 46px; }
+    .mo-ax, .mo-r { display:grid; grid-template-columns:var(--mc); column-gap:10px; align-items:center; }
+    .mo-ax { font-size:12px; color:var(--ink-2); padding:0 13px 4px; }
+    .mo-tk { position:relative; height:16px; } .mo-tk i { position:absolute; font-style:normal; transform:translateX(-50%); }
+    .mo-tk i:first-child { transform:none; } .mo-tk i:last-child { transform:translateX(-100%); }
+    .mo-r { background:var(--bg-1); border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin-bottom:6px; min-height:58px; }
+    .mo-r b { display:block; font-weight:600; font-size:15px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mo-r i { display:block; font-style:normal; font-size:12px; color:var(--ink-2); margin-top:2px; white-space:nowrap; }
+    .mo-dv { position:relative; height:24px; }
+    .mo-dv::before { content:""; position:absolute; left:var(--z); top:-6px; bottom:-6px; border-left:1px solid var(--ink-2); }
+    .mo-dv u { position:absolute; height:8px; min-width:2px; border-radius:2px; text-decoration:none; } .mo-dv u.a { top:3px; } .mo-dv u.b { top:13px; opacity:.5; }
+    .mo-dv u.pos { background:var(--up); } .mo-dv u.neg { background:var(--down); }
+    .mo-w { text-align:right; font-size:15px; font-weight:600; } .mo-w.no { font-weight:400; font-size:13px; color:var(--ink-2); }
+    .e-oos { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+    .e-oos div { background:var(--bg-1); border:1px solid var(--line); border-radius:14px; padding:12px; font-size:13px; color:var(--ink-2); }
+    .e-oos b { display:block; font:600 20px 'Geist Mono',ui-monospace,monospace; color:var(--ink-1); margin-bottom:2px; }
+    @media (min-width:900px) { .mo { --mc:200px minmax(0,1fr) 70px; } }
   </style>
 </head>
 <body class="min-h-screen antialiased">
@@ -196,33 +283,29 @@
 
     <!-- DESK -->
     <section id="view-desk" class="space-y-4">
-      <div id="strip" class="card p-3.5"></div>
-      <div id="quant-banner" class="card p-3.5 hidden"></div>
+      <div id="today" class="today"></div>
       <div id="src-banner" class="card p-4 hidden"></div>
 
-      <div class="space-y-3">
-        <div class="flex items-center justify-between gap-2 flex-wrap">
-          <div class="seg" id="horizon-seg">
-            <button onclick="setHorizon('long')" data-h="long"><i class="ph-bold ph-heartbeat"></i>长线持仓</button>
-            <button onclick="setHorizon('short')" data-h="short"><i class="ph-bold ph-lightning"></i>短线波段</button>
-          </div>
-          <span id="horizon-note" class="text-[11.5px] text-i3 hidden sm:inline"></span>
-        </div>
+      <div class="space-y-2.5">
+        <div id="strip"></div>
         <div class="flex gap-2">
           <div class="relative flex-1">
             <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-i3 text-[16px]"></i>
-            <input id="q" class="search" placeholder="搜索名称或代码" oninput="state.q=this.value.trim();renderDesk()" />
+            <input id="q" class="search" placeholder="搜索名称或代码" aria-label="搜索名称或代码" oninput="state.q=this.value.trim();renderDesk()" />
           </div>
-          <select id="type" class="sel" onchange="state.type=this.value;renderDesk()">
+          <select id="type" class="sel" aria-label="类型" onchange="state.type=this.value;renderDesk()">
             <option value="ALL">全部类型</option><option value="STOCK">个股</option><option value="ETF">ETF</option><option value="INDEX">指数</option>
           </select>
-          <select id="sort" class="sel md:hidden" onchange="setSort(this.value)"></select>
         </div>
       </div>
 
-      <div id="list-desktop" class="card overflow-hidden hidden md:block"><div class="overflow-x-auto"><div id="table-wrap"></div></div></div>
-      <div id="list-mobile" class="md:hidden space-y-2"></div>
-      <p id="foot-note" class="text-[11px] text-i3 leading-relaxed px-1">涨红跌绿。行动指令以策略 V2 为准：止损 = min(入场 − 1.5×ATR, 10 日低点 − 0.3×ATR)，目标取上方最近的结构压力，盈亏比 = (目标 − 入场)/(入场 − 止损)；AI 结论只作标注，与量化冲突时卡片会标出。检查清单 ● 通过 ● 警示 ● 不通过 ○ 数据缺失。「未解析」表示报告格式变化导致页面没读到，不代表报告缺项。仅作研究参考，不构成投资建议。</p>
+      <div>
+        <div id="legend" class="legend"></div>
+        <div id="matrix" class="mx"></div>
+      </div>
+      <div id="rhythm"></div>
+      <div id="quant-banner" class="card p-3.5 hidden"></div>
+      <p id="foot-note" class="text-[12px] text-i2 leading-relaxed px-1"></p>
     </section>
 
     <!-- ETF CORE ROTATION -->
@@ -256,7 +339,6 @@
     WATCH:  { label: "观望",       short: "观望", color: "var(--a-watch)",  icon: "ph-eye" },
     REDUCE: { label: "减仓 / 卖出", short: "减仓", color: "var(--a-reduce)", icon: "ph-arrow-fat-line-down" },
   };
-  const ADV_ORDER = ["BUY", "HOLD", "WATCH", "REDUCE"];
   const VERDICT = {
     ok:      { t: "可以出手",   c: "var(--ok)",    i: "ph-check-circle" },
     wait:    { t: "等回踩",     c: "var(--wait)",  i: "ph-hourglass-medium" },
@@ -266,7 +348,7 @@
     skip:    { t: "不出手",     c: "var(--skip)",  i: "ph-prohibit" },
     na:      { t: "不适用",     c: "var(--ink-3)", i: "ph-minus-circle" },
   };
-  const state = { horizon: localStorage.getItem("511-horizon") || "long", lt: "ALL", source: "watch", risk: parseFloat(localStorage.getItem("511-risk")) || 1, openCode: null, view: "desk", act: "ALL", type: "ALL", q: "", sort: "act", dir: -1, stocks: [], discover: [], discFilter: "ALL", market: null, radar: [], quant: null, etf: null, asOf: 0, radarId: "ALL" };
+  const state = { source: "watch", risk: parseFloat(localStorage.getItem("511-risk")) || 1, openCode: null, view: "desk", act: "ALL", type: "ALL", q: "", stocks: [], discover: [], discFilter: "ALL", market: null, radar: [], quant: null, etf: null, asOf: 0, radarId: "ALL" };
 
   /* ================= Helpers ================= */
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -457,7 +539,6 @@
       checks, passed: checks.filter(c => c.state === "pass").length, failed: checks.filter(c => c.state === "fail").length,
     };
   }
-  const limitShort = l => l.replace(/数据|缺失|无|盘中实时|分布/g, "").replace(/^technical:.*/i, "技术指标不全").trim() || l;
 
   function buildStock(head, sec, sm, latest) {
       const tables = getTables(sec);
@@ -477,6 +558,7 @@
         price, chg, support, resistance, plan,
         ma5: num1(kv(tables, "MA5")), ma10: num1(kv(tables, "MA10")), ma20: num1(kv(tables, "MA20")),
         bias: kv(tables, "乖离率"), trendStrength: parseInt(grab(sec, /趋势强度[:：]\s*(\d+)/)),
+        maText: grab(sec, /均线排列\*\*[:：]\s*([^|\n]+)/), maBull: /多头排列[:：]\s*✅/.test(sec) ? true : /多头排列[:：]\s*❌/.test(sec) ? false : null,
         one: grab(sec, /一句话决策\*\*[:：]\s*([^\n]+)/),
         week: grab(sec, /未来 ?1 ?周推演\*\*[:：]\s*([^\n]+)/).replace(/^未来1周（5个交易日）走势推演[:：]/, ""),
         month: grab(sec, /未来 ?1 ?个月中线预判\*\*[:：]\s*([^\n]+)/).replace(/^未来1个月（20个交易日）中线趋势预判[:：]/, ""),
@@ -725,14 +807,6 @@
   }
 
   /* ================= Rendering ================= */
-  function rrHtml(plan) {
-    if (!plan) return `<span class="text-i3">—</span>`;
-    if (plan.src === "V2" && plan.state === "na") return `<span class="text-i3">不适用</span>`;
-    if (plan.src === "V2" && plan.trailing && Number.isFinite(plan.entry)) return `<span class="text-[11.5px] text-i2">追踪止损</span>`;
-    const c = v => (v >= 2 ? "var(--ok)" : v >= 1.5 ? "var(--wait)" : "var(--ink-3)");
-    const f = v => (Number.isFinite(v) ? v.toFixed(1) : "—");
-    return `<span class="num text-[12.5px]"><span style="color:${c(plan.rrEntry)}">${f(plan.rrEntry)}</span><span class="text-i3 mx-1">/</span><span style="color:${c(plan.rrNow)}">${f(plan.rrNow)}</span></span>`;
-  }
   /* 看板分类：有 V2 时以「是否可出手」为准，避免 LLM「持有观察」把可买票藏进持有 */
   function effAdvice(s) {
     const p = s.plan, raw = s.advice || "WATCH";
@@ -852,7 +926,6 @@
     }
     return A;
   }
-  const actChip = (s, withShort) => { const a = actionPlan(s); return !a ? `<span class="text-i3">—</span>` : `<span class="chip" style="--c:${a.color}"><i class="ph-bold ${a.icon}"></i>${a.label}</span>${withShort ? `<div class="text-[11.5px] text-i3 mt-1 num">${esc(a.short)}</div>` : ""}`; };
   function actionCard(s) {
     const a = actionPlan(s); if (!a) return "";
     const blk = (icon, title, lines) => `<div class="tray p-3.5"><div class="flex items-center gap-2 text-[12px] font-semibold mb-2"><i class="ph-bold ${icon}"></i>${title}</div><ul class="space-y-1.5 text-[13px] leading-relaxed text-i2">${lines.map(l => `<li class="flex gap-2"><span class="text-i3 shrink-0">›</span><span>${esc(l)}</span></li>`).join("")}</ul></div>`;
@@ -884,11 +957,6 @@
   const isDisc = () => state.source === "discover";
   const cur = () => (isDisc() ? state.discover : state.stocks);
   const ACT = { ok: { l: "可以出手", c: "var(--ok)", i: "ph-check-circle" }, wait: { l: "等回踩", c: "var(--wait)", i: "ph-hourglass-medium" }, watch: { l: "观察", c: "var(--weak)", i: "ph-eye" }, weak: { l: "小仓 / 观望", c: "var(--weak)", i: "ph-warning" }, expired: { l: "已失效", c: "var(--ink-3)", i: "ph-clock-countdown" }, skip: { l: "不出手", c: "var(--skip)", i: "ph-prohibit" }, na: { l: "不适用", c: "var(--ink-3)", i: "ph-minus-circle" } };
-  const ACT_ORDER = ["ok", "wait", "watch", "weak", "expired", "skip", "na"];
-  /* 筛选分组：weak 并入观察、expired 并入不出手，手机上 Tab 不超过 6 个 */
-  const ACT_GROUPS = [{ k: "ok", l: "可以出手" }, { k: "wait", l: "等回踩" }, { k: "watch", l: "观察" }, { k: "skip", l: "不出手" }, { k: "na", l: "不适用" }];
-  const actCode = s => effVerdict(s)?.code || "skip";
-  const actGroup = s => ({ weak: "watch", expired: "skip" })[actCode(s)] || actCode(s);
   /* AI 结论与量化状态是否打架：打架时两边都要让用户看到 */
   function conflict(s) {
     const p = s.plan; if (!(p && p.src === "V2")) return null;
@@ -900,15 +968,8 @@
   }
   /* ===== 长线体检（持仓数月以上）===== */
   const LT = { alert: { l: "警报", c: "var(--up)", i: "ph-siren" }, caution: { l: "注意", c: "var(--wait)", i: "ph-warning" }, healthy: { l: "健康", c: "var(--ok)", i: "ph-heartbeat" }, unknown: { l: "数据不足", c: "var(--ink-3)", i: "ph-question" }, na: { l: "不适用", c: "var(--ink-3)", i: "ph-minus-circle" } };
-  const LT_ORDER = ["alert", "caution", "healthy", "unknown", "na"];
-  const LT_GROUPS = [{ k: "alert", l: "警报" }, { k: "caution", l: "注意" }, { k: "healthy", l: "健康" }, { k: "other", l: "其他" }];
   const ltCode = s => s.lt?.level || "unknown";
-  const ltGroup = s => (["unknown", "na"].includes(ltCode(s)) ? "other" : ltCode(s));
-  const hasLT = () => cur().some(s => s.lt);
-  const horizon = () => (state.horizon === "long" ? "long" : "short");
-  const ltChip = s => { const k = ltCode(s), m = LT[k]; return `<span class="chip" style="--c:${m.c}"><i class="ph-bold ${m.i}"></i>${m.l}</span>`; };
   const ltTrendChip = s => { const t = s.lt?.trend; if (!t) return ""; const c = t === "向上" ? "var(--ok)" : t === "向下" ? "var(--up)" : "var(--wait)"; const ic = t === "向上" ? "ph-trend-up" : t === "向下" ? "ph-trend-down" : "ph-minus"; return `<span class="chip" style="--c:${c}"><i class="ph-bold ${ic}"></i>趋势${esc(t)}</span>`; };
-  const ltEventChip = s => s.lt?.events.length ? `<span class="chip" style="--c:var(--up)"><i class="ph-bold ph-warning-diamond"></i>${esc(s.lt.events.slice(0, 2).join("、"))}${s.lt.events.length > 2 ? "…" : ""}</span>` : "";
   const ltDots = (lt, big) => !lt || !lt.checks.length ? "" : `<span class="ck ${big ? "gap-1" : ""}">${lt.checks.map(c => `<i class="${c.state}" title="${esc(c.short)}" ${big ? 'style="width:10px;height:10px"' : ""}></i>`).join("")}</span>`;
   const ltText = lt => !lt || !lt.checks.length ? "" : `<span class="num text-[11.5px] ${lt.failed >= 2 ? "up" : lt.passed >= 5 ? "down" : "text-i2"}">${lt.passed}/${lt.checks.length}</span>`;
   /* 一句话：该做什么 */
@@ -926,7 +987,6 @@
   const missTag = t => `<span class="tag-miss">未解析·${t}</span>`;
   const missTags = s => [...(s.why?.missing || []), ...(s.planMissing ? ["交易计划"] : [])].map(missTag).join(" ");
   const aiChip = s => { const c = conflict(s); return c ? `<span class="chip" style="--c:var(--up)" title="AI 结论与量化状态不一致"><i class="ph-bold ph-warning-diamond"></i>AI ${esc(c.ai)} ≠ 量化</span>` : `<span class="chip" style="--c:${ADV[s.advice || "WATCH"].color}">AI ${ADV[s.advice || "WATCH"].short}</span>`; };
-  const limitsText = w => w && w.limits.length ? `缺 ${w.limits.slice(0, 2).map(limitShort).join("/")}${w.limits.length > 2 ? "…" : ""}` : "";
   /* 一行「触发 / 失效」：入场区 · 止损 · 失效条件（或判定依据） */
   function triggerLine(s) {
     const p = s.plan; if (!p) return "";
@@ -948,94 +1008,101 @@
     }
     return parts.join(" · ");
   }
-  /* 价格行（长线视图卡片 / 表格用）：有正式计划 → 入场区·止损·目标；没有合格买点 → 参考位（明确标注不建议出手） */
-  function pxLine(s) {
-    const p = s.plan; if (!p || !Number.isFinite(s.price)) return null;
-    if (p.src === "V2" && p.state === "na") return null;
-    const f = x => fp(x, s.price), a = actionPlan(s);
-    if (Number.isFinite(p.entry) && Number.isFinite(p.stop)) {
-      const tgt = p.src === "V2" ? p.target : p.targets[0];
-      return { ref: false, label: a ? a.label : "交易计划", color: a ? a.color : "var(--ink-2)",
-               parts: [["入场", Number.isFinite(p.zoneLo) ? `${f(p.zoneLo)}～${f(p.zoneHi)}` : f(p.entry)], ["止损", f(p.stop)], ...(Number.isFinite(tgt) ? [["目标", f(tgt)]] : [])] };
-    }
-    const r = p.ref;
-    if (r) return { ref: true, label: "参考位 · 现价不出手，等到位", color: "var(--ink-3)",
-                    parts: [Number.isFinite(r.lo) ? ["买入", `${f(r.lo)}～${f(r.hi)}`] : Number.isFinite(r.level) ? ["站回", f(r.level)] : null,
-                            Number.isFinite(r.stop) ? ["止损", f(r.stop)] : null, Number.isFinite(r.res) ? ["压力", f(r.res)] : null].filter(Boolean) };
-    return { ref: true, label: "暂无买点", color: "var(--ink-3)", parts: [], note: p.verdictText || "" };
-  }
-  const pxParts = x => x.parts.map(([k, v]) => `<span class="whitespace-nowrap"><span class="text-i3">${k}</span> <span class="num font-medium text-i1">${v}</span></span>`).join(`<span class="text-i3"> · </span>`);
   const hitChips = s => (s.disc?.hits || []).map(h => `<span class="chip" style="--c:var(--a-buy)">${esc(h)}</span>`).join(" ");
   function visible() {
     const q = state.q.toLowerCase();
     return cur().filter(s => (state.type === "ALL" || s.type === state.type) && (!q || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)));
   }
-  const rrOf = p => { if (!p) return -1; const a = [p.rrNow, p.rrEntry].filter(Number.isFinite); return a.length ? Math.max(...a) : -1; };
+  /* ===== 三个判断：均线（技术面）/ 长线体检 / AI 趋势判断。1 偏多，-1 偏空，0 中性，null 没数据 ===== */
+  const judgeT = s => (s.maBull === true ? 1 : s.maBull === false ? (/空头/.test(s.maText || "") ? -1 : 0) : null);
+  const judgeL = s => (s.lt ? ({ healthy: 1, caution: 0, alert: -1 })[s.lt.level] ?? null : null);
+  const judgeA = s => { const t = s.trend || ""; return /看多|偏多|上涨/.test(t) ? 1 : /看空|偏空|下跌/.test(t) ? -1 : /震荡|中性|盘整|横盘/.test(t) ? 0 : null; };
+  const judges = s => [judgeT(s), judgeL(s), judgeA(s)];
+  const clash = s => { const j = judges(s); return j.includes(1) && j.includes(-1); };
+  const clashText = s => { const n = ["均线", "长线", "AI "], j = judges(s); return `${n.filter((_, i) => j[i] === 1).join("、")}偏多，${n.filter((_, i) => j[i] === -1).join("、")}偏空`; };
+  const glyph = (v, tip) => `<svg class="g" viewBox="0 0 16 16" role="img" aria-label="${esc(tip)}"><title>${esc(tip)}</title>${
+    v === 1 ? `<path d="M8 2.5 14.5 13.5h-13z" fill="var(--up)"/>` : v === -1 ? `<path d="M8 13.5 1.5 2.5h13z" fill="var(--down)"/>`
+    : v === 0 ? `<path d="M8 2.5 13.5 8 8 13.5 2.5 8z" fill="var(--ink-3)"/>` : `<path d="M4 8h8" stroke="var(--ink-3)" stroke-width="2" stroke-linecap="round"/>`}</svg>`;
+  const judgeTips = s => [`均线：${s.maText || ({ 1: "多头排列", 0: "不是多头排列" })[judgeT(s)] || "报告里没有"}`, `长线体检：${s.lt ? LT[ltCode(s)].l : "报告里没有"}`, `AI 趋势判断：${s.trend || "报告里没有"}`];
+  const VERD = { BUY: ["可出手", "buy"], REDUCE: ["减仓", "red"], HOLD: ["持有", "hold"], WATCH: ["观望", "watch"] };
+  const isMove = s => ["BUY", "REDUCE"].includes(effAdvice(s));
+  const isNear = s => !!(s.plan && s.plan.src === "V2" && ["wait", "watch"].includes(s.plan.state));
+  const FILTERS = [{ k: "ALL", l: "全部", f: () => true }, { k: "move", l: "要动", f: isMove }, { k: "clash", l: "有分歧", f: clash }, { k: "near", l: "等买点", f: isNear }];
+  /* 每行的一句说明：减仓给持仓者的做法，可出手给入场/止损，其余给分歧和量化结论 */
+  function noteOf(s) {
+    const e = effAdvice(s), p = s.plan;
+    if (e === "REDUCE") return (s.flat && s.flat.held) || s.one || "";
+    if (e === "BUY") return triggerLine(s) || s.one || "";
+    return [clash(s) ? clashText(s) : "", p && p.src === "V2" && p.state !== "na" ? p.verdictText : ""].filter(Boolean).join("。");
+  }
   function sortedList(list) {
-    const val = s => ({ score: s.score ?? -1, chg: Number.isFinite(s.chg) ? s.chg : -999, rr: rrOf(s.plan), name: s.name, adv: ADV_ORDER.indexOf(effAdvice(s)), price: s.price || 0, act: -ACT_ORDER.indexOf(actCode(s)), check: s.why?.checks.length ? s.why.passed - s.why.failed * 0.5 : -1,
-      lt: -LT_ORDER.indexOf(ltCode(s)), dd: Number.isFinite(s.lt?.dd) ? s.lt.dd : 1, ltcheck: s.lt?.checks.length ? s.lt.passed - s.lt.failed : -9 })[state.sort];
-    return [...list].sort((a, b) => { const x = val(a), y = val(b); const r = typeof x === "string" ? x.localeCompare(y, "zh") : x - y; return r * state.dir || rrOf(b.plan) - rrOf(a.plan) || (b.score ?? 0) - (a.score ?? 0); });
-  }
-  function setSort(k) { if (state.sort === k) state.dir *= -1; else { state.sort = k; state.dir = (k === "name" || k === "dd") ? 1 : -1; } renderDesk(); }
-  const SORTS = { short: [["act", "按行动"], ["check", "按检查清单"], ["rr", "按盈亏比"], ["score", "按评分"], ["chg", "按涨跌"], ["name", "按名称"]],
-                  long: [["lt", "按体检结论"], ["dd", "按回撤"], ["ltcheck", "按体检项"], ["chg", "按涨跌"], ["name", "按名称"]] };
-  function syncSortSelect(h) {
-    const el = document.getElementById("sort"), opts = SORTS[h];
-    if (!opts.some(o => o[0] === state.sort)) { state.sort = opts[0][0]; state.dir = state.sort === "dd" ? 1 : -1; }
-    el.innerHTML = opts.map(([k, l]) => `<option value="${k}">${l}</option>`).join(""); el.value = state.sort;
-  }
-  function setHorizon(h) {
-    state.horizon = h; localStorage.setItem("511-horizon", h); state.act = "ALL"; state.lt = "ALL";
-    state.sort = h === "long" ? "lt" : "act"; state.dir = -1; renderDesk();
+    const rank = s => ({ BUY: 0, REDUCE: 1, HOLD: 2, WATCH: 3 })[effAdvice(s)], sc = s => s.score ?? 0;
+    return [...list].sort((a, b) => rank(a) - rank(b) || clash(b) - clash(a) || (effAdvice(a) === "REDUCE" ? sc(a) - sc(b) : sc(b) - sc(a)) || a.name.localeCompare(b.name, "zh"));
   }
 
-  /* 今日状态条：数据新鲜度 · 市场温度 · 行动状态计数（点击即筛选）。替代原 4 个 KPI 卡 + 操作分布 */
-  function freshness() {
-    if (!state.asOf) return { t: "无数据", c: "var(--ink-3)" };
-    const age = Date.now() / 1000 - state.asOf;
-    if (age > 36 * 3600) return { t: "已过期", c: "var(--up)" };
-    if (age > 14 * 3600) return { t: "较旧", c: "var(--wait)" };
-    return { t: "新鲜", c: "var(--ok)" };
+  /* ===== 今日结论：顶部一句话 + 依据；页面底部是一天的时间轴 ===== */
+  /* 服务器定时任务（北京时间，周一到周五）。改了服务器上的 cron，这里要跟着改。 */
+  const RUNS = [{ at: 8 * 60 + 20, name: "盘前排雷" }, { at: 16 * 60 + 30, name: "选股发现" }, { at: 20 * 60 + 30, name: "完整分析" }];
+  const bj = ts => new Date((ts + 8 * 3600) * 1000);   // 之后一律用 getUTC* 读，得到的就是北京时间，和设备时区无关
+  const bjKey = ts => { const d = bj(ts); return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate(); };
+  const bjMin = ts => { const d = bj(ts); return d.getUTCHours() * 60 + d.getUTCMinutes(); };
+  const bjDate = ts => { const d = bj(ts); return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日`; };
+  const isWeekday = ts => { const w = bj(ts).getUTCDay(); return w >= 1 && w <= 5; };
+  const hm = m => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  function nextRunText(now, as) {
+    const w = bj(now).getUTCDay(), m = bjMin(now), wd = w >= 1 && w <= 5, got = bjKey(as) === bjKey(now) ? bjMin(as) : -1;
+    if (wd && m < RUNS[0].at) return `今天 ${hm(RUNS[0].at)} 开始读隔夜的新闻和公告，跑完后刷新就能看到。`;
+    if (wd && m < RUNS[2].at) return `今晚 ${hm(RUNS[2].at)} 会用最新收盘价重算一遍，跑完后刷新就能看到。`;
+    if (wd && got < RUNS[2].at) return `今晚 ${hm(RUNS[2].at)} 的完整分析还没出结果，稍后刷新。`;
+    return `下一次是${w === 5 || w === 6 ? "周一" : "明天"} ${hm(RUNS[0].at)}，开盘前再读一遍新闻和公告。`;
   }
-  function renderStripLong(list) {
-    const n = list.length, mk = state.market, fr = freshness();
-    const cnt = k => list.filter(s => ltGroup(s) === k).length;
-    const adds = list.filter(s => s.lt?.addOpen).length, reds = list.filter(s => s.lt?.reduce).length, evs = list.filter(s => s.lt?.events.length).length, missing = list.filter(s => s.ltMissing).length;
-    const mkTxt = mk && mk.score != null ? `<button class="tap inline-flex items-center gap-1.5" onclick="setView('market')"><span class="num font-semibold text-i1">${mk.score}</span><span class="text-i3">/100</span><span class="text-i2">${esc(mk.label)}</span><i class="ph ph-caret-right text-i3"></i></button>` : `<span class="text-i3">等待大盘复盘</span>`;
-    document.getElementById("strip").innerHTML = `
-      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 text-[12px]">
-        <div class="flex items-center gap-2 min-w-0"><span class="dot" style="--c:${fr.c}"></span><span class="mono text-i2">${state.asOf ? "分析 " + fmtTs(state.asOf) : "—"}</span><span style="color:${fr.c}" class="font-medium">${fr.t}</span><span class="text-i3">${state.fromSnapshot ? "快照" : "实时"}</span></div>
-        <div class="flex items-center gap-1.5"><span class="lbl">市场温度</span>${mkTxt}</div>
+  /* 08:00–21:00 的一条线：三次任务跑没跑完（看消息时间）、交易时段、现在在哪 */
+  function dayAxis(now) {
+    if (!isWeekday(now)) return "";
+    const key = bjKey(now), m = bjMin(now), pos = x => Math.max(0, Math.min(100, (x - 480) / 780 * 100));
+    const got = bjKey(state.asOf) === key ? bjMin(state.asOf) : -1, gotD = state.discTs && bjKey(state.discTs) === key ? bjMin(state.discTs) : -1;
+    const st = [got >= RUNS[2].at ? "over" : got >= RUNS[0].at ? "ok" : m < RUNS[0].at ? "todo" : "late",
+                gotD >= RUNS[1].at ? "ok" : m < RUNS[1].at ? "todo" : "late",
+                got >= RUNS[2].at ? "ok" : m < RUNS[2].at ? "todo" : "late"];
+    const word = { ok: "已出结果", over: "已过", todo: "还没到", late: "还没出结果" };
+    const nowAt = pos(m);
+    return `<div class="axis" role="img" aria-label="今天的三次分析：${RUNS.map((r, i) => `${hm(r.at)} ${r.name}${word[st[i]]}`).join("，")}">
+        <div class="ln"></div>
+        <div class="op" style="left:${pos(570)}%;width:${pos(690) - pos(570)}%"></div><div class="op" style="left:${pos(780)}%;width:${pos(900) - pos(780)}%"></div>
+        ${RUNS.map((r, i) => `<div class="rn ${st[i]}" style="left:${pos(r.at)}%"></div><p class="cp ${["l", "m", "r"][i]}" style="left:${i === 0 ? 0 : i === 2 ? 100 : pos(r.at)}%"><b class="num">${hm(r.at)}</b>${r.name}<br>${word[st[i]]}</p>`).join("")}
+        ${m >= 480 && m <= 1260 ? `<div class="nw ${nowAt > 80 ? "r" : ""}" style="left:${nowAt}%"><span>现在</span></div>` : ""}
       </div>
-      <div class="flex flex-wrap gap-1.5 mt-3">
-        <button class="pill tap ${state.lt === "ALL" ? "on" : ""}" onclick="state.lt='ALL';renderDesk()">全部 <b>${n}</b></button>
-        ${LT_GROUPS.map(g => `<button class="pill tap ${state.lt === g.k ? "on" : ""} ${cnt(g.k) ? "" : "zero"}" onclick="state.lt='${g.k}';renderDesk()"><span class="dot" style="--c:${g.k === "other" ? "var(--ink-3)" : LT[g.k].c}"></span>${g.l} <b>${cnt(g.k)}</b></button>`).join("")}
-      </div>
-      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-[11.5px] text-i3">
-        <span>${adds ? `<span style="color:var(--ok)"><i class="ph-bold ph-plus-circle"></i> ${adds} 个加仓窗口开启</span>` : "无加仓窗口"} · ${reds ? `<span style="color:var(--up)"><i class="ph-bold ph-arrow-down-right"></i> ${reds} 个减仓信号</span>` : "无减仓信号"} · ${evs ? `<span style="color:var(--up)">${evs} 个有事件风险</span>` : "无事件风险"}</span>
-        ${missing ? `<span>${missing} 个长线体检未解析</span>` : ""}
-      </div>`;
+      <p class="t-cap">粗线是交易时间（09:30–11:30，13:00–15:00）。</p>`;
   }
-  function renderStrip(list) {
-    const n = list.length, mk = state.market, fr = freshness();
-    const cntG = k => list.filter(s => actGroup(s) === k).length, cntA = k => list.filter(s => effAdvice(s) === k).length;
-    const conflicts = list.filter(conflict).length, missing = list.filter(s => (s.why?.missing.length || s.planMissing)).length;
-    const mkTxt = mk && mk.score != null ? `<button class="tap inline-flex items-center gap-1.5" onclick="setView('market')"><span class="num font-semibold text-i1">${mk.score}</span><span class="text-i3">/100</span><span class="text-i2">${esc(mk.label)}</span><i class="ph ph-caret-right text-i3"></i></button>` : `<span class="text-i3">等待大盘复盘</span>`;
-    document.getElementById("strip").innerHTML = `
-      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 text-[12px]">
-        <div class="flex items-center gap-2 min-w-0"><span class="dot" style="--c:${fr.c}"></span><span class="mono text-i2">${state.asOf ? "分析 " + fmtTs(state.asOf) : "—"}</span><span style="color:${fr.c}" class="font-medium">${fr.t}</span><span class="text-i3">${state.fromSnapshot ? "快照" : "实时"}</span></div>
-        <div class="flex items-center gap-1.5"><span class="lbl">市场温度</span>${mkTxt}</div>
-      </div>
-      <div class="flex flex-wrap gap-1.5 mt-3">
-        <button class="pill tap ${state.act === "ALL" ? "on" : ""}" onclick="state.act='ALL';renderDesk()">全部 <b>${n}</b></button>
-        ${ACT_GROUPS.map(g => `<button class="pill tap ${state.act === g.k ? "on" : ""} ${cntG(g.k) ? "" : "zero"}" onclick="state.act='${g.k}';renderDesk()"><span class="dot" style="--c:${ACT[g.k].c}"></span>${g.l} <b>${cntG(g.k)}</b></button>`).join("")}
-      </div>
-      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-[11.5px] text-i3">
-        <span>AI 结论：买入 ${cntA("BUY")} · 持有 ${cntA("HOLD")} · 观望 ${cntA("WATCH")} · 减仓 ${cntA("REDUCE")}</span>
-        ${conflicts ? `<span style="color:var(--up)"><i class="ph-bold ph-warning-diamond"></i> ${conflicts} 个 AI 与量化不一致</span>` : ""}
-        ${missing ? `<span>${missing} 个有未解析字段</span>` : ""}
-      </div>`;
+  function renderToday() {
+    const el = document.getElementById("today"), list = state.stocks;
+    const rh = document.getElementById("rhythm");
+    if (isDisc() || !list.length || !state.asOf) { el.classList.add("hidden"); el.innerHTML = ""; rh.innerHTML = ""; return; }
+    el.classList.remove("hidden");
+    const now = Date.now() / 1000, as = state.asOf, fresh = bjKey(as) === bjKey(now);
+    const buy = list.filter(s => effAdvice(s) === "BUY").length, red = list.filter(s => effAdvice(s) === "REDUCE").length, rest = list.length - buy - red;
+    const tail = rest ? `其余 ${rest} 只不动。` : "";
+    /* 每一小段不拆行：窄屏在段与段之间换行，不会把最后一个字单独甩到下一行 */
+    const segs = !buy && !red ? ["不用动。", `${list.length} 只都不买不卖。`]
+      : !buy ? ["不开新仓。", rest ? `减 ${red} 只，` : `减 ${red} 只。`, tail]
+      : !red ? [`有 ${buy} 只可以出手。`, tail]
+      : [`有 ${buy} 只可以出手，`, `减 ${red} 只。`, tail];
+    const gm = bjMin(as), when = !isWeekday(as) ? "休市日" : gm < 570 ? "开盘前" : gm < 900 ? "盘中" : "收盘后";
+    const priceOf = when === "开盘前" ? "上一个交易日的收盘价" : when === "盘中" ? "生成时的最新价" : "最近一个收盘价";
+    el.innerHTML = `
+      <div class="t-date">${bjDate(now)} 周${"日一二三四五六"[bj(now).getUTCDay()]} ${hm(bjMin(now))}</div>
+      <h1 class="t-h1">${segs.filter(Boolean).map((t, i) => `<span>${i ? "" : fresh ? "今天" : "上次结论："}${t}</span>`).join("")}</h1>
+      <p class="t-basis">${fresh ? "" : `<span class="t-warn">今天的分析还没出来。</span>`}依据是 <b>${bjDate(as)} ${hm(gm)}</b> ${when}生成的分析：价格用的是<b>${priceOf}</b>，新闻和公告读到生成那一刻。${nextRunText(now, as)}</p>`;
+    const axis = dayAxis(now);
+    rh.innerHTML = axis ? `<h2 class="e-sec">这份结论什么时候更新</h2>${axis}` : "";
   }
+  /* 筛选条：全部 / 要动 / 有分歧 / 等买点，右边是大盘温度 */
+  function renderStrip(all) {
+    const mk = state.market;
+    const mkBtn = mk && mk.score != null ? `<button class="pill lg tap" onclick="setView('market')">大盘 <b>${mk.score}</b>/100 ${esc(mk.label)}<i class="ph ph-caret-right"></i></button>` : "";
+    document.getElementById("strip").innerHTML = `<div class="flex flex-wrap gap-1.5">${FILTERS.map(g => { const n = all.filter(g.f).length; return `<button class="pill lg tap ${state.act === g.k ? "on" : ""} ${n ? "" : "zero"}" onclick="state.act='${g.k}';renderDesk()">${g.l} <b>${n}</b></button>`; }).join("")}<span class="flex-1"></span>${mkBtn}</div>`;
+  }
+
   function renderBanner() {
     const el = document.getElementById("src-banner");
     if (!isDisc()) { el.classList.add("hidden"); return; }
@@ -1061,114 +1128,41 @@
       <div class="text-[12px] text-i2 mt-2.5 leading-relaxed">Alpha158 · LightGBM 日频模型。${q.validated ? "已通过样本外门禁，可作为候选池参考。" : "未通过样本外门禁，<b>不映射为买入建议</b>，只做观察。"}${q.failed ? ` 未通过项：${esc(q.failed)}。` : ""} 模型只给排序分，不给原因；是否出手仍看下方各标的的策略 V2 状态。</div>
       ${picks ? `<div class="flex flex-wrap gap-1.5 mt-2">${picks}</div>` : ""}</details>`;
   }
-  /* 卡片 / 表格共用的「为什么」片段 */
-  const whyBlock = (s, compact) => {
-    const w = s.why; if (!w) return "";
-    const line = (ic, c, t) => t ? `<div class="flex gap-1.5 items-start text-[12.5px] leading-snug"><span class="shrink-0" style="color:${c}">${ic}</span><span class="text-i2 ${compact ? "clamp1" : "clamp2"}">${esc(t)}</span></div>` : "";
-    return `${line("🐂", "var(--down)", w.bull)}${line("🐻", "var(--up)", w.bear)}`;
-  };
-  const whyMeta = s => {
-    const w = s.why; if (!w) return "";
-    const parts = [];
-    if (w.checks.length) parts.push(`<span class="inline-flex items-center gap-1.5">${ckDots(w)}${ckText(w)}</span>`);
-    if (w.timeliness) parts.push(`<span class="text-i3">⏰ ${esc(w.timeliness)}</span>`);
-    const lim = limitsText(w); if (lim) parts.push(`<span class="text-i3">${esc(lim)}</span>`);
-    const miss = missTags(s); if (miss) parts.push(miss);
-    return parts.length ? `<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px]">${parts.join("")}</div>` : "";
-  };
-  const FOOT = {
-    short: "涨红跌绿。行动指令以策略 V2 为准：止损 = min(入场 − 1.5×ATR, 10 日低点 − 0.3×ATR)，目标取上方最近的结构压力，盈亏比 = (目标 − 入场)/(入场 − 止损)；AI 结论只作标注，与量化冲突时卡片会标出。检查清单 ● 通过 ● 警示 ● 不通过 ○ 数据缺失。「未解析」表示报告格式变化导致页面没读到，不代表报告缺项。仅作研究参考，不构成投资建议。",
-    long: "长线体检面向持仓数月以上：🟢 健康 = MA60 > MA120、现价在 MA120 上方、250 日回撤 < 25%、无公告/新闻事件风险；🟡 注意 = 其中任一项走弱或出现减持/质押等中等事件；🔴 警报 = MA60 下穿 MA120 且双双向下、跌破年线且年线走平、回撤 > 35% 或立案/退市级事件。加仓窗口只在趋势向上且体检健康、价格回到 MA60～MA120 时开启。长线止损取年线下方 3% 与 −20% 中更近者。短线入场/止损请切到「短线波段」。仅作研究参考，不构成投资建议。",
-  };
-  function renderDeskLong(list) {
-    const th = (k, label, cls = "") => k ? `<th class="sort ${cls}" onclick="setSort('${k}')">${label}${state.sort === k ? `<i class="ph-bold ${state.dir < 0 ? "ph-caret-down" : "ph-caret-up"} ml-1"></i>` : ""}</th>` : `<th class="${cls}">${label}</th>`;
-    const typeLbl = s => ({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type];
-    const posLine = s => { const lt = s.lt; if (!lt) return ""; const parts = []; if (Number.isFinite(lt.vsMa120)) parts.push(`MA120 ${pct(lt.vsMa120)}`); if (Number.isFinite(lt.vsMa250)) parts.push(`年线 ${pct(lt.vsMa250)}`); if (Number.isFinite(lt.dd)) parts.push(`<span class="${lt.dd <= -25 ? "up" : ""}">回撤 ${lt.dd.toFixed(1)}%</span>`); return parts.join(" · "); };
-    const stopLine = s => { const lt = s.lt; return lt && Number.isFinite(lt.stop) ? `<div class="num font-medium">${fp(lt.stop, s.price)}</div><div class="num text-[11px] text-i3 mt-0.5" title="${esc(lt.stopBasis)}">${pct(lt.stopPct)} · ${esc(lt.stopBasis.replace(/年线 MA250 下方 3%/, "年线下"))}</div>` : `<span class="text-i3">—</span>`; };
-    const noLT = s => `<span class="text-i3">${s.ltMissing ? missTag("长线体检") : "下次分析后出现"}</span>`;
-    const pxCell = s => { const x = pxLine(s); return !x ? `<span class="text-i3">${s.plan && s.plan.state === "na" ? "不适用" : "—"}</span>` : `<div class="text-[11px] font-medium" style="color:${x.color}">${esc(x.label)}</div><div class="mt-0.5 leading-snug">${x.parts.length ? pxParts(x) : `<span class="text-i3 clamp2">${esc(x.note)}</span>`}</div>`; };
-    const pxCard = s => { const x = pxLine(s); return !x ? "" : `<div class="tray px-2.5 py-2 mt-2.5 text-[12px] leading-relaxed"><div class="text-[11px] font-medium" style="color:${x.color}">${x.ref ? "" : "短线买点 · "}${esc(x.label)}</div><div class="mt-0.5">${x.parts.length ? pxParts(x) : `<span class="text-i3">${esc(x.note)}</span>`}</div></div>`; };
-    document.getElementById("table-wrap").innerHTML = `<table class="dtable" style="min-width:1120px"><thead><tr>
-      ${th("name", "标的")}${th("price", "现价 / 涨跌", "r")}${th("lt", "体检结论 · 该做什么")}${th("dd", "长线趋势 · 位置")}${th("ltcheck", "体检项")}${th("", "事件风险")}${th("", "短线买点 / 止损")}${th("", "长线止损", "r")}</tr></thead><tbody>
-      ${list.map(s => { const a = ltAction(s); return `<tr onclick="openDrawer('${s.code}')">
-        <td><div class="font-semibold text-[13.5px]">${esc(s.name)}${staleTag(s)}</div><div class="mono text-[11px] text-i3 mt-0.5">${esc(s.code)} · ${typeLbl(s)}</div></td>
-        <td class="r"><div class="num font-medium">${fp(s.price)}</div><div class="num text-[12px] ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></td>
-        <td class="act" style="min-width:210px;max-width:280px;white-space:normal">${s.lt ? `<div class="flex flex-wrap items-center gap-1.5">${ltChip(s)}${a ? `<span class="text-[12.5px] font-medium" style="color:${a.c}"><i class="ph-bold ${a.i}"></i> ${esc(a.t)}</span>` : ""}</div>${a && a.d ? `<div class="text-[11.5px] text-i3 mt-1 clamp1">${esc(a.d)}</div>` : ""}` : noLT(s)}</td>
-        <td class="wrap">${s.lt ? `<div class="flex flex-wrap items-center gap-1.5">${ltTrendChip(s)}</div><div class="num text-[11.5px] text-i2 mt-1">${posLine(s)}</div>` : ""}</td>
-        <td style="white-space:normal;max-width:150px">${s.lt && s.lt.checks.length ? `<div class="flex items-center gap-2">${ltDots(s.lt, true)}${ltText(s.lt)}</div>` : `<span class="text-i3">—</span>`}</td>
-        <td class="wrap">${s.lt ? (s.lt.events.length ? ltEventChip(s) : `<span class="text-i3 text-[12px]">无</span>`) : ""}</td>
-        <td style="white-space:normal;min-width:190px;max-width:250px">${pxCell(s)}</td>
-        <td class="r" style="white-space:normal;min-width:120px">${stopLine(s)}</td></tr>`; }).join("")}</tbody></table>`;
-
-    document.getElementById("list-mobile").innerHTML = list.map(s => { const lt = s.lt, a = ltAction(s), px = pxLine(s); return `
-      <button onclick="openDrawer('${s.code}')" class="tap card w-full text-left p-3.5 fade-in block">
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0"><div class="font-semibold text-[15px] leading-tight">${esc(s.name)}${staleTag(s)}</div><div class="mono text-[11px] text-i3 mt-1">${esc(s.code)} · ${typeLbl(s)}</div></div>
-          <div class="text-right shrink-0"><div class="num text-[16px] font-semibold leading-tight">${fp(s.price)}</div><div class="num text-[12px] mt-1 font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></div>
-        </div>
-        ${lt ? `<div class="flex flex-wrap items-center gap-1.5 mt-2.5">${ltChip(s)}${ltTrendChip(s)}${ltEventChip(s)}</div>
-        ${a ? `<div class="text-[13px] mt-2 font-medium" style="color:${a.c}"><i class="ph-bold ${a.i}"></i> ${esc(a.t)}</div>${a.d ? `<div class="text-[12.5px] text-i2 mt-1 leading-snug clamp2">${esc(a.d)}</div>` : ""}` : ""}
-        ${posLine(s) ? `<div class="num text-[12px] text-i2 mt-2.5">${posLine(s)}</div>` : ""}
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-[11.5px]">${lt.checks.length ? `<span class="inline-flex items-center gap-1.5">${ltDots(lt)}${ltText(lt)}</span>` : ""}${Number.isFinite(lt.stop) ? `<span class="text-i3">止损 <span class="num text-i2">${fp(lt.stop, s.price)}</span> (${pct(lt.stopPct)})</span>` : ""}</div>`
-        : `<div class="mt-2.5 text-[12px]">${noLT(s)}</div>`}
-        ${px ? `<div class="tray px-2.5 py-2 mt-2.5 text-[12px] leading-relaxed"><div class="text-[11px] font-medium" style="color:${px.color}">${px.ref ? "" : "短线 · "}${esc(px.label)}</div><div class="mt-0.5">${px.parts.length ? pxParts(px) : `<span class="text-i3 clamp2">${esc(px.note)}</span>`}</div></div>` : ""}
-      </button>`; }).join("");
-  }
+  const FOOT = "三个判断各看各的：均线看短期排列，长线体检看 MA60、MA120、年线和回撤，AI 是模型读完行情和新闻后的趋势判断。结论一栏：AI 判为减仓的记减仓；其余以量化计划 V2 为准，计划和现价的盈亏比都不低于 2 才算可出手。「减仓」指已经持有的减，没持有就不碰。点任意一行看入场、止损、目标和完整报告。涨红跌绿。仅作研究参考，不构成投资建议。";
   function renderDesk() {
-    const base = visible();
-    renderQuantBanner();
-    renderBanner();
-    const h = horizon();
-    document.querySelectorAll("#horizon-seg button").forEach(b => b.classList.toggle("on", b.dataset.h === h));
-    document.getElementById("horizon-note").textContent = h === "long" ? (hasLT() ? "持仓数月以上 · 健康 / 注意 / 警报" : "长线体检在下一次分析后出现") : "几天到几周 · 以策略 V2 为准";
-    document.getElementById("foot-note").textContent = FOOT[h];
-    syncSortSelect(h);
-    if (h === "long") renderStripLong(cur()); else renderStrip(cur());
-    const list = h === "long"
-      ? sortedList(state.lt === "ALL" ? base : base.filter(s => ltGroup(s) === state.lt))
-      : sortedList(state.act === "ALL" ? base : base.filter(s => actGroup(s) === state.act));
+    const all = cur(), base = visible();
+    renderToday(); renderQuantBanner(); renderBanner(); renderStrip(all);
+    document.getElementById("foot-note").textContent = FOOT;
+    const mx = document.getElementById("matrix"), lg = document.getElementById("legend");
+    const list = sortedList(base.filter((FILTERS.find(g => g.k === state.act) || FILTERS[0]).f));
+    lg.innerHTML = list.length ? `<span>${glyph(1, "偏多")}偏多</span><span>${glyph(-1, "偏空")}偏空</span><span>${glyph(0, "中性")}中性</span><span>${glyph(null, "没数据")}没数据</span>` : "";
 
-    if (!cur().length) {
+    if (!all.length) {
       const none = isDisc() && state.discEmpty;
       const noneDay = none && new Date(state.discTs * 1000).toDateString() === new Date().toDateString() ? "今天" : "最近一次扫描";
-      const empty = none
-        ? `<div class="card p-8 text-center text-i2 text-[13px] leading-relaxed"><i class="ph ph-prohibit text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">${noneDay}没有合格候选</div><div class="mt-1 num">${fmtTs(state.discTs)} 扫描</div>${none.funnel ? `<div class="mt-3">${esc(none.funnel)}</div>` : ""}${none.why ? `<div class="mt-1">${esc(none.why)}</div>` : ""}</div>`
+      mx.innerHTML = none
+        ? `<div class="card p-8 text-center text-i2 text-[14px] leading-relaxed"><i class="ph ph-prohibit text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">${noneDay}没有合格候选</div><div class="mt-1 num">${fmtTs(state.discTs)} 扫描</div>${none.funnel ? `<div class="mt-3">${esc(none.funnel)}</div>` : ""}${none.why ? `<div class="mt-1">${esc(none.why)}</div>` : ""}</div>`
         : isDisc()
-        ? `<div class="card p-8 text-center text-i2 text-[13px] leading-relaxed"><i class="ph ph-compass text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">还没有选股结果</div><div class="mt-1">到 DSA 仓库的 Actions 里运行「选股发现」，约 10 分钟后候选会出现在这里。</div></div>`
-        : `<div class="card p-8 text-center text-i2 text-[13px] leading-relaxed"><i class="ph ph-hourglass text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">暂无分析数据</div><div class="mt-1">服务器只保留最近 3 天的分析。等待下一次分析完成，或点击右上角刷新。</div></div>`;
-      document.getElementById("table-wrap").innerHTML = empty; document.getElementById("list-mobile").innerHTML = empty; return;
+        ? `<div class="card p-8 text-center text-i2 text-[14px] leading-relaxed"><i class="ph ph-compass text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">还没有选股结果</div><div class="mt-1">到 DSA 仓库的 Actions 里运行「选股发现」，约 10 分钟后候选会出现在这里。</div></div>`
+        : `<div class="card p-8 text-center text-i2 text-[14px] leading-relaxed"><i class="ph ph-hourglass text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">暂无分析数据</div><div class="mt-1">服务器只保留最近 3 天的分析。等待下一次分析完成，或点击右上角刷新。</div></div>`;
+      return;
     }
-    if (!list.length) {
-      const empty = `<div class="p-8 text-center text-i2 text-[13px]"><i class="ph ph-funnel-simple text-[24px] text-i3"></i><div class="mt-2">该分类下暂无标的</div></div>`;
-      document.getElementById("table-wrap").innerHTML = empty; document.getElementById("list-mobile").innerHTML = `<div class="card">${empty}</div>`; return;
-    }
-    if (h === "long") { renderDeskLong(list); return; }
+    if (!list.length) { mx.innerHTML = `<div class="card p-8 text-center text-i2 text-[14px]"><i class="ph ph-funnel-simple text-[24px] text-i3"></i><div class="mt-2">这个分类下没有标的</div></div>`; return; }
 
-    const th = (k, label, cls = "") => k ? `<th class="sort ${cls}" onclick="setSort('${k}')">${label}${state.sort === k ? `<i class="ph-bold ${state.dir < 0 ? "ph-caret-down" : "ph-caret-up"} ml-1"></i>` : ""}</th>` : `<th class="${cls}">${label}</th>`;
     const typeLbl = s => ({ STOCK: "个股", ETF: "ETF", INDEX: "指数" })[s.type];
-    document.getElementById("table-wrap").innerHTML = `<table class="dtable" style="min-width:960px"><thead><tr>
-      ${th("name", "标的")}${th("price", "现价 / 涨跌", "r")}${th("act", "行动指令")}${th("", "为什么 · 最强看多 / 看空")}${th("check", "检查清单 · 时效")}${th("rr", "盈亏比", "r")}${th("", "触发 / 失效")}</tr></thead><tbody>
-      ${list.map(s => { const a = actionPlan(s); return `<tr onclick="openDrawer('${s.code}')">
-        <td><div class="font-semibold text-[13.5px]">${esc(s.name)}${staleTag(s)}</div><div class="mono text-[11px] text-i3 mt-0.5">${esc(s.code)} · ${typeLbl(s)}${Number.isFinite(s.score) ? ` · 评分 ${s.score}` : ""}${s.disc && s.disc.hits.length ? ` · ${esc(s.disc.hits.join(" + "))}` : ""}</div></td>
-        <td class="r"><div class="num font-medium">${fp(s.price)}</div><div class="num text-[12px] ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></td>
-        <td class="act"><div class="flex flex-wrap items-center gap-1.5">${actChip(s, false)}${aiChip(s)}</div>${a ? `<div class="text-[11.5px] text-i3 mt-1 num clamp1">${esc(a.short)}</div>` : ""}</td>
-        <td class="wrap"><div class="space-y-1">${whyBlock(s, true) || `<span class="text-i3">—</span>`}</div></td>
-        <td style="white-space:normal;max-width:150px">${s.why && s.why.checks.length ? `<div class="flex items-center gap-2">${ckDots(s.why, true)}${ckText(s.why)}</div>` : `<span class="text-i3">—</span>`}<div class="text-[11px] text-i3 mt-1 leading-snug">${s.why && s.why.timeliness ? "⏰ " + esc(s.why.timeliness) : ""}${limitsText(s.why) ? ` · ${esc(limitsText(s.why))}` : ""}</div>${missTags(s) ? `<div class="mt-1">${missTags(s)}</div>` : ""}</td>
-        <td class="r">${rrHtml(s.plan)}</td>
-        <td class="wrap text-[12px] text-i2"><span class="clamp2">${esc(triggerLine(s) || "—")}</span></td></tr>`; }).join("")}</tbody></table>`;
-
-    document.getElementById("list-mobile").innerHTML = list.map(s => { const a = actionPlan(s), trig = triggerLine(s); return `
-      <button onclick="openDrawer('${s.code}')" class="tap card w-full text-left p-3.5 fade-in block">
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0"><div class="font-semibold text-[15px] leading-tight">${esc(s.name)}${staleTag(s)}</div><div class="mono text-[11px] text-i3 mt-1">${esc(s.code)} · ${typeLbl(s)}${Number.isFinite(s.score) ? ` · 评分 ${s.score}` : ""}${s.disc && s.disc.hits.length ? ` · ${esc(s.disc.hits.join(" + "))}` : ""}</div></div>
-          <div class="text-right shrink-0"><div class="num text-[16px] font-semibold leading-tight">${fp(s.price)}</div><div class="num text-[12px] mt-1 font-medium ${dirCls(s.chg)}">${pct(s.chg, 2)}</div></div>
-        </div>
-        <div class="flex flex-wrap items-center gap-1.5 mt-2.5">${actChip(s, false)}${aiChip(s)}</div>
-        ${a ? `<div class="text-[12.5px] mt-1.5 num" style="color:${a.color}">${esc(a.short)}</div>` : ""}
-        ${whyBlock(s) ? `<div class="tray p-2.5 mt-3 space-y-1">${whyBlock(s)}</div>` : ""}
-        ${trig ? `<div class="text-[12px] text-i2 mt-2.5 leading-snug"><span class="text-i3">触发/失效</span> <span class="num">${esc(trig)}</span>${s.plan && Number.isFinite(s.plan.rrEntry) ? ` <span class="text-i3">· 盈亏比</span> ${rrHtml(s.plan)}` : ""}</div>` : ""}
-        ${whyMeta(s) ? `<div class="mt-2.5">${whyMeta(s)}</div>` : ""}
-      </button>`; }).join("");
+    const row = s => {
+      const e = effAdvice(s), j = judges(s), tips = judgeTips(s), hot = isMove(s), hits = s.disc && s.disc.hits.length ? s.disc.hits.join(" + ") : "";
+      const note = [hits ? "命中 " + hits : "", noteOf(s)].filter(Boolean).join("。"), talk = note && (hot || clash(s) || hits);
+      return `<div class="mx-r ${hot ? "hot " + VERD[e][1] : ""}"><button type="button" class="mx-b tap" onclick="openDrawer('${s.code}')">
+        <span class="mx-who"><b>${esc(s.name)}${staleTag(s)}</b><i class="num"><span class="mx-cd">${esc(s.code)}，${typeLbl(s)}${Number.isFinite(s.score) ? `，评分 ${s.score}` : ""}</span><span class="mx-pm">${fp(s.price)} <span class="${dirCls(s.chg)}">${pct(s.chg, 2)}</span></span></i></span>
+        <span class="mx-w mx-price num">${fp(s.price)}<span class="${dirCls(s.chg)}">${pct(s.chg, 2)}</span></span>
+        <span class="mx-c">${glyph(j[0], tips[0])}</span><span class="mx-c">${glyph(j[1], tips[1])}</span><span class="mx-c">${glyph(j[2], tips[2])}</span>
+        <span class="mx-v ${VERD[e][1]}">${VERD[e][0]}</span>
+        <span class="mx-w mx-note">${esc(note)}</span>
+        ${talk ? `<span class="mx-say">${esc(note)}</span>` : ""}
+      </button></div>`;
+    };
+    mx.innerHTML = `<div class="mx-hd"><span>标的</span><span class="mx-w mx-p">现价 / 涨跌</span><span>均线</span><span>长线</span><span>AI</span><span>结论</span><span class="mx-w mx-n">说明</span></div>${list.map(row).join("")}`;
   }
 
   /* ---------- Drawer ---------- */
@@ -1284,7 +1278,6 @@
   function openDrawer(code) {
     const s = state.stocks.find(x => x.code === code) || state.discover.find(x => x.code === code); if (!s) return;
     const p = s.plan, sec = (t, body) => `<section class="px-5 pt-5"><div class="lbl mb-2.5">${t}</div>${body}</section>`;
-    const isLong = horizon() === "long";
     document.getElementById("drawer-body").innerHTML = `
       <div class="px-5 pt-4 pb-4 sticky top-0 z-10" style="background:var(--bg-0);border-bottom:1px solid var(--line)">
         <div class="flex items-start justify-between gap-3">
@@ -1297,8 +1290,6 @@
         </div>
         ${conflict(s) ? `<div class="mt-3 text-[12px] leading-relaxed rounded-[10px] px-3 py-2" style="background:color-mix(in srgb,var(--up) 10%,transparent);color:var(--up)"><i class="ph-bold ph-warning-diamond"></i> AI 结论「${esc(ADV[s.advice].label)}」与量化状态「${esc(ACT[s.plan.state].l)}」不一致。行动指令以量化为准，AI 观点见下方一句话决策与操作建议。</div>` : ""}
       </div>
-      ${isLong ? ltSection(s) : ""}
-      ${isLong ? `<div class="lbl px-5 pt-7 -mb-2">短线买卖点 · 策略 V2（入场 / 止损 / 盈亏比）</div>` : ""}
       ${actionCard(s)}
       ${whySection(s)}
       ${s.disc ? sec("选股依据", discBasis(s)) : ""}
@@ -1322,7 +1313,7 @@
           <div class="tray p-3"><div class="lbl">盈亏比 · 回踩入场</div><div class="num text-[20px] font-semibold mt-1.5">1:${p.rrEntry.toFixed(2)}</div></div>
           <div class="tray p-3"><div class="lbl">盈亏比 · 现价追入</div><div class="num text-[20px] font-semibold mt-1.5">1:${p.rrNow.toFixed(2)}</div></div></div>
           <p class="text-[11.5px] text-i3 mt-2.5 leading-relaxed">旧版计划（下一次分析后自动升级为 V2）。S 止损 · E 入场 · 1/2/3 目标 · R 压力。</p>` : ""}`)}
-      ${isLong ? "" : ltSection(s)}
+      ${ltSection(s)}
       ${(s.week || s.month) ? sec("走势前瞻", `<div class="space-y-2">
         ${s.week ? `<div class="tray p-3.5"><div class="flex items-center gap-1.5 text-[12px] font-semibold mb-1.5"><i class="ph-bold ph-calendar-blank"></i>未来 1 周</div><div class="text-[13px] leading-relaxed text-i2">${esc(s.week)}</div></div>` : ""}
         ${s.month ? `<div class="tray p-3.5"><div class="flex items-center gap-1.5 text-[12px] font-semibold mb-1.5"><i class="ph-bold ph-calendar-dots"></i>未来 1 个月</div><div class="text-[13px] leading-relaxed text-i2">${esc(s.month)}</div></div>` : ""}</div>`) : ""}
@@ -1353,49 +1344,52 @@
   function renderEtf() {
     const el = document.getElementById("view-etf"), e = state.etf;
     if (!e) {
-      el.innerHTML = `<div class="card p-8 text-center text-i2 text-[13px]"><i class="ph ph-arrows-left-right text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">暂无ETF轮动信号</div><div class="mt-1">完整分析运行后自动更新。</div></div>`;
+      el.innerHTML = `<div class="card p-8 text-center text-i2 text-[14px]"><i class="ph ph-arrows-left-right text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">暂无ETF轮动信号</div><div class="mt-1">完整分析运行后自动更新。</div></div>`;
       return;
     }
-    const tone = e.state === "进攻" ? "var(--ok)" : e.state === "防守" ? "var(--up)" : "var(--wait)";
-    const held = e.assets.filter(a => a.weight > 0), total = held.reduce((s, a) => s + a.weight, 0);
+    const w = v => String(+v.toFixed(1));
+    const held = e.assets.filter(a => a.weight > 0);
     const capital = Math.max(1000, Number(localStorage.getItem("511-etf-capital")) || 100000);
     const money = value => `¥${Math.round(value).toLocaleString("zh-CN")}`;
-    const block = (label, value, color) => `<div class="tray p-3.5"><div class="lbl">${label}</div><div class="num text-[22px] font-semibold mt-1.5" style="color:${color || "var(--ink-1)"}">${Number.isFinite(value) ? value.toFixed(1) + "%" : "—"}</div></div>`;
+    const shade = i => [100, 62, 40, 26][Math.min(i, 3)];
+    /* 动量图：零轴位置按这一期的数据定，左负右正 */
+    const vals = e.assets.flatMap(a => [a.mom6, a.mom12]).filter(Number.isFinite);
+    const lo = Math.min(-10, Math.floor(Math.min(0, ...vals) / 10) * 10), hi = Math.max(10, Math.ceil(Math.max(0, ...vals) / 10) * 10), span = hi - lo, z = -lo / span * 100;
+    const bar = (v, c) => !Number.isFinite(v) ? "" : v >= 0 ? `<u class="${c} pos" style="left:${z}%;width:${v / span * 100}%"></u>` : `<u class="${c} neg" style="right:${100 - z}%;width:${-v / span * 100}%"></u>`;
     el.innerHTML = `
-      <div class="card p-4">
-        <div class="flex items-start justify-between gap-3">
-          <div><div class="lbl">ETF核心轮动 · 当前环境</div><div class="text-[26px] font-semibold mt-1.5" style="color:${tone}">${esc(e.state || "—")}</div><div class="mono text-[11px] text-i3 mt-1">${esc(e.date || fmtTs(e.ts))} · 更新 ${fmtTs(e.ts)}</div></div>
-          <span class="chip" style="--c:${e.gate ? "var(--ok)" : "var(--up)"}">${e.gate ? "历史门禁通过" : "研究观察中"}</span>
-        </div>
-        <div class="grid grid-cols-3 gap-2 mt-4">${block("权益仓位", e.equity, "var(--ok)")}${block("防守仓位", e.defensive, "var(--wait)")}${block("现金仓位", e.cash, "var(--ink-2)")}</div>
-        <div class="text-[12px] text-i2 mt-3 leading-relaxed">月末收盘计算，下一交易日开盘调仓。目标年化波动 12%，单只ETF不超过35%。这是组合目标比例，不是盘中追涨指令。</div>
+      <div class="today">
+        <div class="t-date">ETF 核心轮动，信号日 <span class="num">${esc(e.date || fmtTs(e.ts))}</span></div>
+        <h1 class="e-h1">${held.length ? `本期持有${held.map(a => `${esc(a.name)} ${w(a.weight)}%`).join("、")}，留 ${w(e.cash)}% 现金。` : "本期全部留现金。"}</h1>
+        <p class="t-basis mt-2">当前环境是<b>${esc(e.state)}</b>：权益 ${w(e.equity)}%，防守 ${w(e.defensive)}%，现金 ${w(e.cash)}%。每月最后一个交易日收盘后算一次，下一个交易日开盘调仓，月中不因涨跌换仓。${e.gate ? "历史门禁已通过。" : `<span class="t-warn">历史门禁没通过，只作研究观察。</span>`}</p>
+        <div class="e-bar" role="img" aria-label="目标比例">${held.map((a, i) => `<div style="flex:${a.weight};background:color-mix(in srgb,var(--ink-1) ${shade(i)}%,var(--bg-3));color:${shade(i) >= 40 ? "var(--bg-0)" : "var(--ink-1)"}"><b>${w(a.weight)}%</b>${esc(a.name)}</div>`).join("")}${e.cash > 0 ? `<div class="cash" style="flex:${e.cash}"><b>${w(e.cash)}%</b>现金</div>` : ""}</div>
       </div>
+
       <div>
-        <div class="card p-4 mb-3">
-          <div class="flex items-center justify-between gap-3"><div><div class="font-semibold text-[15px]">本期操作单</div><div class="text-[11px] text-i3 mt-1">输入专门用于这套策略的总资金</div></div>
-            <label class="tray px-3 py-2 flex items-center gap-1"><span class="text-i3">¥</span><input class="num bg-transparent outline-none w-24 text-right text-[15px]" type="number" min="1000" step="1000" value="${capital}" onchange="setEtfCapital(this.value)"></label>
-          </div>
-          <div class="mt-3 space-y-2">
-            ${held.map(a => { const target = capital * a.weight / 100, lots = Number.isFinite(a.price) && a.price > 0 ? Math.floor(target / a.price / 100) * 100 : null; return `<div class="tray p-3 flex items-center gap-3"><div class="flex-1 min-w-0"><div class="font-medium text-[13.5px]">${esc(a.name)} <span class="mono text-i3 text-[10.5px]">${esc(a.code)}</span></div><div class="text-[11px] text-i3 mt-1">目标市值 ${money(target)}${lots !== null ? ` · 约 ${lots} 股` : ""}</div></div><div class="text-right"><div class="font-semibold text-[14px]" style="color:${tone}">调仓至 ${a.weight.toFixed(1)}%</div><div class="text-[10.5px] text-i3 mt-1">目标−现有=买卖差额</div></div></div>`; }).join("")}
-            <div class="tray p-3 flex items-center justify-between"><div><div class="font-medium text-[13.5px]">现金</div><div class="text-[11px] text-i3 mt-1">不用于购买其他品种</div></div><div class="font-semibold text-[14px]">${money(capital * e.cash / 100)} · ${e.cash.toFixed(1)}%</div></div>
-          </div>
-          <div class="mt-3 p-3 rounded-[10px] text-[12px] leading-relaxed" style="background:var(--s2)"><b>怎么执行：</b>空仓按上面的目标市值买入；已有仓位先算“目标市值－当前市值”，正数买入、负数卖出。其余观察池ETF目标为0，应清仓或不买。ETF按100股整数倍取整，零头留作现金。</div>
-          ${capital < 300000 ? `<div class="mt-2 text-[11px] leading-relaxed" style="color:var(--up)"><b>小资金提示：</b>国债ETF一手约需1.4万元，策略资金低于约30万元时，整手取整会造成较大仓位偏差；页面股数仅作试算。历史回测按100万元执行。</div>` : ""}
-          <div class="text-[11px] text-i3 mt-2 leading-relaxed">只在月末信号更新后的下一交易日执行一次，不因盘中涨跌临时换仓。若已经错过执行日，不追涨，等下一次月末信号。</div>
+        <h2 class="e-sec">本期操作单</h2>
+        <label class="e-cap">策略资金 <input type="number" inputmode="numeric" min="1000" step="1000" value="${capital}" onchange="setEtfCapital(this.value)" aria-label="策略资金（元）"> 元</label>
+        ${held.map(a => { const target = capital * a.weight / 100, lots = Number.isFinite(a.price) && a.price > 0 ? Math.floor(target / a.price / 100) * 100 : null; return `<div class="e-op"><b>${esc(a.name)} 调到 ${w(a.weight)}%</b><span class="num">${money(target)}</span><i><span class="num">${esc(a.code)}</span>${lots !== null ? `，按 <span class="num">${fp(a.price)}</span> 元算约 <span class="num">${lots.toLocaleString("zh-CN")}</span> 股` : ""}</i></div>`; }).join("")}
+        <div class="e-op"><b>现金留 ${w(e.cash)}%</b><span class="num">${money(capital * e.cash / 100)}</span><i>不买别的品种</i></div>
+        <p class="e-txt"><b>怎么执行：</b>空仓的按上面的目标金额买入；已经持有的，用目标金额减去现在的市值，正数买入，负数卖出。没进组合的目标是 0，持有就清掉，没有就不买。ETF 按 100 股整数倍取整，零头留作现金。</p>
+        ${capital < 300000 ? `<p class="e-txt"><span class="t-warn">小资金提示：</span>国债ETF一手约需 1.4 万元，策略资金低于约 30 万元时，整手取整会造成较大的仓位偏差，这里的股数只是试算。历史回测按 100 万元执行。</p>` : ""}
+        <p class="e-txt">只在月末信号更新后的下一个交易日执行一次。已经错过执行日的不追，等下一次月末信号。</p>
+      </div>
+
+      <div>
+        <h2 class="e-sec">为什么是这几只</h2>
+        <p class="e-lead">观察池 ${e.assets.length} 只都要过同一道筛选：价格在年线之上，6 个月和 12 个月动量都为正。每行上面一条是 6 个月动量，下面浅一些的是 12 个月动量，竖线是零。</p>
+        <div class="mo" style="--z:${z}%">
+          <div class="mo-ax"><span>ETF</span><div class="mo-tk num"><i style="left:0">${lo}%</i>${z > 8 && z < 92 ? `<i style="left:${z}%">0</i>` : ""}<i style="left:100%">+${hi}%</i></div><span style="text-align:right">目标</span></div>
+          ${e.assets.map(a => `<div class="mo-r"><span style="min-width:0"><b>${esc(a.name)}</b><i class="num">${pct(a.mom6)} / ${pct(a.mom12)}</i></span><div class="mo-dv">${bar(a.mom6, "a")}${bar(a.mom12, "b")}</div><span class="mo-w num ${a.weight > 0 ? "" : "no"}">${a.weight > 0 ? w(a.weight) + "%" : "不买"}</span></div>`).join("")}
         </div>
-        <div class="flex items-center justify-between px-1 mb-2"><h2 class="text-[14px] font-semibold">目标配置依据</h2><span class="text-[11px] text-i3">已配置 ${total.toFixed(1)}% · 其余现金</span></div>
-        ${held.length ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">${held.map(a => `<div class="card p-4">
-          <div class="flex items-start justify-between gap-3"><div><div class="font-semibold text-[14px]">${esc(a.name)}</div><div class="mono text-[11px] text-i3 mt-0.5">${esc(a.code)}</div></div><div class="num text-[23px] font-semibold" style="color:${tone}">${a.weight.toFixed(1)}%</div></div>
-          <div class="bar mt-3"><span style="width:${Math.min(100, a.weight / 35 * 100)}%;background:${tone}"></span></div>
-          <div class="flex justify-between mt-2 text-[11.5px] text-i3"><span>6月 <b class="${dirCls(a.mom6)}">${pct(a.mom6)}</b></span><span>12月 <b class="${dirCls(a.mom12)}">${pct(a.mom12)}</b></span></div>
-        </div>`).join("")}</div>` : `<div class="card p-6 text-center text-i2 text-[13px]">没有ETF同时通过年线和动量过滤，本期保持现金。</div>`}
       </div>
-      <div class="card overflow-hidden"><div class="px-4 py-3 border-b" style="border-color:var(--line)"><div class="font-semibold text-[14px]">全部观察池</div></div>
-        <div class="overflow-x-auto"><table class="dtable" style="min-width:720px"><thead><tr><th>ETF</th><th class="r">目标仓位</th><th class="r">6月动量</th><th class="r">12月动量</th><th>操作</th></tr></thead><tbody>
-          ${e.assets.map(a => `<tr><td><div class="font-medium">${esc(a.name)}</div><div class="mono text-[10.5px] text-i3">${esc(a.code)}</div></td><td class="r num font-medium">${a.weight.toFixed(1)}%</td><td class="r num ${dirCls(a.mom6)}">${pct(a.mom6)}</td><td class="r num ${dirCls(a.mom12)}">${pct(a.mom12)}</td><td class="text-i2">${a.weight > 0 ? `调仓至 ${a.weight.toFixed(1)}%` : "清仓/不买"}</td></tr>`).join("")}
-        </tbody></table></div>
-      </div>
-      ${e.oos ? `<div class="card p-4"><div class="lbl">冻结样本外 · 2022至今</div><div class="grid grid-cols-3 gap-3 mt-3 text-center"><div><div class="num text-[18px] font-semibold">${e.oos.cagr.toFixed(1)}%</div><div class="text-[10.5px] text-i3 mt-1">策略年化</div></div><div><div class="num text-[18px] font-semibold">${e.oos.dd.toFixed(1)}%</div><div class="text-[10.5px] text-i3 mt-1">最大回撤</div></div><div><div class="num text-[18px] font-semibold">${e.oos.bench.toFixed(1)}%</div><div class="text-[10.5px] text-i3 mt-1">沪深300年化</div></div></div><div class="text-[11px] text-i3 mt-3 leading-relaxed">历史结果不代表未来。2019–2021牛市阶段策略年化约11%，明显低于沪深300；该策略优先控制回撤，不保证每个阶段跑赢股票指数。</div></div>` : ""}
+
+      ${e.oos ? `<div>
+        <h2 class="e-sec">它在历史上的表现</h2>
+        <p class="e-lead">2022 年至今的冻结样本外结果。</p>
+        <div class="e-oos"><div><b>${e.oos.cagr.toFixed(1)}%</b>策略年化</div><div><b>${e.oos.dd.toFixed(1)}%</b>最大回撤</div><div><b>${e.oos.bench.toFixed(1)}%</b>沪深300年化</div></div>
+        <p class="e-txt">历史结果不代表未来。2019 到 2021 年牛市阶段策略年化约 11%，明显低于沪深300。这套策略优先控制回撤，不保证每个阶段都跑赢股票指数。</p>
+      </div>` : ""}
+      <div class="text-[12px] text-i2 text-center num">信号更新于 ${fmtTs(e.ts)}</div>
     `;
   }
 
@@ -1455,7 +1449,7 @@
     const page = v === "discover" ? "desk" : v;
     if (v === "desk" || v === "discover") {
       const next = v === "discover" ? "discover" : "watch";
-      if (state.source !== next) { state.source = next; state.act = "ALL"; state.sort = "act"; state.dir = -1; state.q = ""; document.getElementById("q").value = ""; renderDesk(); }
+      if (state.source !== next) { state.source = next; state.act = "ALL"; state.q = ""; document.getElementById("q").value = ""; renderDesk(); }
     }
     document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
     ["desk", "etf", "market", "radar"].forEach(k => document.getElementById("view-" + k).classList.toggle("hidden", k !== page));
@@ -1479,10 +1473,11 @@
   (function init() {
     if (localStorage.getItem("511-theme") === "light") { document.documentElement.classList.remove("dark"); document.getElementById("theme-icon").className = "ph ph-moon text-[17px]"; }
     if (loadCache()) renderAll(); else {
-      document.getElementById("strip").innerHTML = '<div class="skeleton h-5 w-2/3"></div><div class="flex gap-1.5 mt-3">' + Array(5).fill('<div class="skeleton h-[30px] w-20"></div>').join("") + '</div>';
-      document.getElementById("list-mobile").innerHTML = Array(3).fill('<div class="skeleton h-[150px]"></div>').join("");
+      document.getElementById("today").innerHTML = '<div class="skeleton h-4 w-32"></div><div class="skeleton h-[84px] w-full mt-3"></div><div class="skeleton h-4 w-2/3 mt-3"></div>';
+      document.getElementById("matrix").innerHTML = Array(4).fill('<div class="skeleton h-[60px] mb-1.5"></div>').join("");
     }
     loadAll();
+    setInterval(() => { if (!document.hidden && state.view === "desk") renderToday(); }, 60000);   // 「现在」和下一次更新的说法按分钟刷新
   })();
 </script>
 </body>
