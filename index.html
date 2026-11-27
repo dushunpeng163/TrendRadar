@@ -1049,6 +1049,18 @@
   const bjDate = ts => { const d = bj(ts); return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日`; };
   const isWeekday = ts => { const w = bj(ts).getUTCDay(); return w >= 1 && w <= 5; };
   const hm = m => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  // 选股每个工作日 16:30 扫一次。上次结果之后，已经过了时限（17:30）却没有新结果的扫描有几次
+  const discMissed = () => {
+    if (!state.discTs) return 0;
+    const now = Date.now() / 1000; let n = 0;
+    for (let day = Math.floor((state.discTs + 8 * 3600) / 86400); ; day++) {
+      const slot = day * 86400 - 8 * 3600 + RUNS[1].at * 60;
+      if (slot + 3600 > now) break;
+      if (slot > state.discTs && isWeekday(slot)) n++;
+    }
+    return n;
+  };
+  const discStaleNote = () => { const n = discMissed(); return n ? `<div style="color:var(--up)">已过期：之后本该有 ${n} 次扫描，都没有出结果。下面是 ${fmtTs(state.discTs).slice(0, 5)} 的旧结果。</div>` : ""; };
   function nextRunText(now, as) {
     const w = bj(now).getUTCDay(), m = bjMin(now), wd = w >= 1 && w <= 5, got = bjKey(as) === bjKey(now) ? bjMin(as) : -1;
     if (wd && m < RUNS[0].at) return `今天 ${hm(RUNS[0].at)} 开始读隔夜的新闻和公告，跑完后刷新就能看到。`;
@@ -1110,7 +1122,7 @@
     const strategies = [...new Set(state.discover.flatMap(s => s.disc.hits))];
     el.innerHTML = `<div class="flex items-start gap-3"><div class="w-9 h-9 rounded-[11px] bg-s2 flex items-center justify-center shrink-0"><i class="ph-bold ph-compass text-[18px]"></i></div>
       <div class="min-w-0"><div class="text-[14px] font-semibold">全市场量化初筛 · 已排除你的自选</div>
-      <div class="text-[12px] text-i2 mt-1 leading-relaxed">${state.discEmpty && !state.discover.length ? `${fmtTs(state.discTs)} · 这次扫描没有合格候选，不凑数` : state.discover.length ? `${fmtTs(state.discTs)} · 策略：${esc(strategies.join("、"))} · 「买入」按 V2 可以出手归类 · 基本面过滤 · AI 复核 · 完整分析` : "运行「选股发现」后，候选会出现在这里。"}</div></div></div>`;
+      <div class="text-[12px] text-i2 mt-1 leading-relaxed">${state.discEmpty && !state.discover.length ? `${fmtTs(state.discTs)} · 这次扫描没有合格候选，不凑数` : state.discover.length ? `${fmtTs(state.discTs)} · 策略：${esc(strategies.join("、"))} · 「买入」按 V2 可以出手归类 · 基本面过滤 · AI 复核 · 完整分析` : "运行「选股发现」后，候选会出现在这里。"}${discStaleNote()}</div></div></div>`;
   }
   function renderQuantBanner() {
     const el = document.getElementById("quant-banner"), q = state.quant;
@@ -1139,7 +1151,7 @@
 
     if (!all.length) {
       const none = isDisc() && state.discEmpty;
-      const noneDay = none && new Date(state.discTs * 1000).toDateString() === new Date().toDateString() ? "今天" : "最近一次扫描";
+      const noneDay = none && new Date(state.discTs * 1000).toDateString() === new Date().toDateString() ? "今天" : discMissed() ? "最近一次成功的扫描" : "最近一次扫描";
       mx.innerHTML = none
         ? `<div class="card p-8 text-center text-i2 text-[14px] leading-relaxed"><i class="ph ph-prohibit text-[28px] text-i3"></i><div class="mt-3 font-medium text-i1">${noneDay}没有合格候选</div><div class="mt-1 num">${fmtTs(state.discTs)} 扫描</div>${none.funnel ? `<div class="mt-3">${esc(none.funnel)}</div>` : ""}${none.why ? `<div class="mt-1">${esc(none.why)}</div>` : ""}</div>`
         : isDisc()
